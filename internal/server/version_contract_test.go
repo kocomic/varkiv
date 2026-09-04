@@ -23,8 +23,11 @@ func TestEmbeddedAssetsUseRuntimeVersion(t *testing.T) {
 			t.Errorf("embedded brand asset %q is missing: %v", asset, err)
 		}
 	}
-	if !bytes.Contains(index, []byte("<title>Varkiv · 私人游戏库</title>")) {
+	if !bytes.Contains(index, []byte("<title>Varkiv</title>")) {
 		t.Error("embedded index is missing the Varkiv product title")
+	}
+	if bytes.Contains(index, []byte("私人游戏库")) {
+		t.Error("embedded index still contains the retired brand subtitle")
 	}
 	if !bytes.Contains(openAPI, []byte("version: "+buildinfo.Version)) {
 		t.Errorf("OpenAPI info.version does not match runtime %q", buildinfo.Version)

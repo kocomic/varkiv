@@ -2,8 +2,6 @@
   const supported = ['zh-CN', 'zh-TW', 'ja', 'en'];
   const languageIndex = { 'zh-CN': 0, 'zh-TW': 1, ja: 2, en: 3 };
   const strings = {
-    'Varkiv · 私人游戏库': ['Varkiv · 私人游戏库', 'Varkiv · 私人遊戲庫', 'Varkiv · 個人ゲームライブラリ', 'Varkiv · Personal game library'],
-    '私人游戏库': ['私人游戏库', '私人遊戲庫', '個人ゲームライブラリ', 'Personal game library'],
     '主导航': ['主导航', '主導覽', 'メインナビゲーション', 'Main navigation'],
     '游戏库': ['资料库', '資料庫', 'ライブラリ', 'Library'],
     '来源': ['导入源', '匯入來源', 'インポート元', 'Import sources'],

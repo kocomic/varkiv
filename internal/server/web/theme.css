@@ -126,7 +126,7 @@ body { transition: background-color .18s ease, color .18s ease; }
 .topbar { background: rgba(var(--theme-canvas-rgb), .82); border-color: var(--theme-border-soft); }
 .nav-item { color: var(--theme-text-muted); }
 .nav-item.active { background: var(--theme-surface-raised); color: var(--theme-text); box-shadow: inset 0 0 0 1px var(--theme-border-soft); }
-.brand small, .core-status small, .sidebar-foot p, .locale-label { color: var(--theme-text-muted); }
+.core-status small, .sidebar-foot p, .locale-label { color: var(--theme-text-muted); }
 .search, .locale-label select, .quiet-button, .library-mode, .icon-button {
   border-color: var(--theme-border-soft);
   background: var(--theme-surface);

@@ -34,9 +34,9 @@ test('runtime and browser assets share the canonical release version', async ({ 
   await expect(health.json()).resolves.toMatchObject({ name: 'Varkiv', version: expectedVersion });
 
   await page.goto('/?e2e=version#library');
-  await expect(page).toHaveTitle('Varkiv · 私人游戏库');
+  await expect(page).toHaveTitle('Varkiv');
   await expect(page.locator('.brand strong')).toHaveText('VARKIV');
-  await expect(page.locator('.brand small')).toHaveText('私人游戏库');
+  await expect(page.locator('.brand small')).toHaveCount(0);
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute('href', '/assets/favicon.svg');
   await expect.poll(() => page.locator('.brand-mark img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
   await expect(page.locator('link[href^="/styles.css"]')).toHaveAttribute('href', `/styles.css?v=${expectedVersion}`);
@@ -55,9 +55,9 @@ test('runtime and browser assets share the canonical release version', async ({ 
     missing: canFallbackOriginalRaster(''),
   }))).toEqual({ webp: true, avif: true, bmp: true, icon: true, svg: false, html: false, missing: false });
   await page.locator('#locale').selectOption('en');
-  await expect(page).toHaveTitle('Varkiv · Personal game library');
+  await expect(page).toHaveTitle('Varkiv');
   await expect(page.locator('.brand strong')).toHaveText('VARKIV');
-  await expect(page.locator('.brand small')).toHaveText('Personal game library');
+  await expect(page.locator('.brand small')).toHaveCount(0);
 });
 
 test('settings exposes verified browser assets as a compact localized runtime status', async ({ page }) => {
