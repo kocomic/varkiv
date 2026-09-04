@@ -1,0 +1,35 @@
+FROM debian:13.2-slim@sha256:32ccbb2ff8fdcb839bbe9c03c33e4e962b51fe8859249f821638d674b0b88d66
+
+# Acceptance-only x86-64 Windows process runtime. The image executes the
+# generated PE and exact Task XML argv under Wine; it is never shipped as part
+# of Varkiv or copied into a target package.
+
+ARG WINE_VERSION=10.0~repack-6
+ARG DEBIAN_SNAPSHOT=20251229T000000Z
+ARG DEBIAN_SNAPSHOT_HOST=https://snapshot-cloudflare.debian.org
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN printf '%s\n' \
+        "deb [check-valid-until=no] ${DEBIAN_SNAPSHOT_HOST}/archive/debian/${DEBIAN_SNAPSHOT} trixie main" \
+        "deb [check-valid-until=no] ${DEBIAN_SNAPSHOT_HOST}/archive/debian-security/${DEBIAN_SNAPSHOT} trixie-security main" \
+        > /etc/apt/sources.list \
+    && rm -f /etc/apt/sources.list.d/debian.sources \
+    && apt-get -o Acquire::https::Verify-Peer=false -o Acquire::https::Verify-Host=false \
+        -o Acquire::ForceIPv4=true -o Acquire::Languages=none -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::https::Verify-Peer=false -o Acquire::https::Verify-Host=false \
+        -o Acquire::ForceIPv4=true -o Acquire::Languages=none \
+        install --yes --no-install-recommends ca-certificates=20250419 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get -o Acquire::ForceIPv4=true -o Acquire::Languages=none \
+        -o Acquire::Retries=5 -o Acquire::https::Timeout=30 update \
+    && apt-get -o Acquire::ForceIPv4=true -o Acquire::Languages=none \
+        install --yes --no-install-recommends \
+        wine="${WINE_VERSION}" \
+        wine64="${WINE_VERSION}" \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV WINEARCH=win64 \
+    WINEDEBUG=-all \
+    WINEDLLOVERRIDES=winemenubuilder.exe=d
+
+ENTRYPOINT ["/usr/bin/wine"]

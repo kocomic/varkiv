@@ -1,0 +1,8 @@
+services:
+  app:
+    volumes:
+      - type: bind
+        source: "${VARKIV_DATA_PATH:?Set VARKIV_DATA_PATH to an existing absolute local NAS path}"
+        target: /data
+        bind:
+          create_host_path: false

@@ -1,0 +1,23 @@
+{
+  "format_version": 1,
+  "device_profile_id": "builtin-device-windows-handheld",
+  "frontend_adapter_id": "builtin-frontend-pegasus",
+  "bindings": [
+    {
+      "edition_id": "e2e-runtime-edition",
+      "platform_id": "nds",
+      "rom_path": "runtimehint/nds/Runtime Hint Demo.nds",
+      "binding": {
+        "edition_id": "e2e-runtime-edition",
+        "device_profile_id": "builtin-device-windows-handheld",
+        "driver_id": "builtin-driver-retroarch",
+        "frontend_adapter_id": "builtin-frontend-pegasus",
+        "core_id": "builtin-core-melonds-ds",
+        "arguments": ["--appendconfig", "{{device.config_dir}}/nds-safe.cfg"],
+        "enabled": true
+      },
+      "driver": {"id": "builtin-driver-retroarch"},
+      "core_resolution": {"core": {"id": "builtin-core-melonds-ds"}}
+    }
+  ]
+}

@@ -1,0 +1,315 @@
+name: Attested preview release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build, attest, and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    env:
+      PUBLIC_RELEASE_APPROVED: ${{ vars.PUBLIC_RELEASE_APPROVED }}
+      HARDWARE_RELEASE_APPROVED: ${{ vars.HARDWARE_RELEASE_APPROVED }}
+    steps:
+      - name: Check out the exact tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up patched Go toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: '1.26.6'
+          cache-dependency-path: go.sum
+
+      - name: Set up Node.js for browser acceptance
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.x'
+          cache: npm
+
+      - name: Set up JDK for signed Android release
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            clients/android/*.gradle.kts
+            clients/android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+
+      - name: Register ARM64 and ARMv7 user-mode execution
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+        with:
+          platforms: arm64,arm
+
+      - name: Install pinned Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Enforce maintainer release gates and version identity
+        shell: bash
+        env:
+          ANDROID_RELEASE_KEYSTORE_B64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          test "$PUBLIC_RELEASE_APPROVED" = true
+          test "$HARDWARE_RELEASE_APPROVED" = true
+          test -f LICENSE
+          test -s docs/THIRD_PARTY_NOTICES.md
+          test -n "$ANDROID_RELEASE_KEYSTORE_B64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+          expected="${GITHUB_REF_NAME#v}"
+          source_version="$(tr -d '\r\n' < internal/buildinfo/VERSION)"
+          test "$source_version" = "$expected"
+          ./scripts/check-version.sh
+
+      - name: Verify source and dependencies
+        run: |
+          ./scripts/check-source-hygiene.sh
+          ./scripts/test-source-hygiene.sh
+          ./scripts/check-github-actions-pinning.sh
+          ./scripts/test-github-actions-pinning.sh
+          ./scripts/check-version.sh
+          ./scripts/check-docs.py
+          ./scripts/test-render-container-deployment.sh
+          ./scripts/test-acceptance-device-cli.sh
+          ./scripts/test-android-release-signatures.sh
+          go mod verify
+          ./scripts/check-third-party-notices.sh --all
+          go test -race ./...
+          go vet ./...
+          go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+          test -z "$(gofmt -l .)"
+          node --check internal/server/web/app.js
+          node --check internal/server/web/i18n.js
+          node --check scripts/lib/web-emulator-assets.mjs
+          node --check scripts/fetch-web-emulator-assets.mjs
+          node --check scripts/verify-web-emulator-assets.mjs
+          node --check scripts/test-web-emulator-assets.mjs
+          node --check scripts/acceptance-web-emulation.mjs
+          node --check scripts/fetch-web-netplay-assets.mjs
+          node --check scripts/verify-web-netplay-assets.mjs
+          node --check scripts/acceptance-web-netplay.mjs
+          sh -n scripts/acceptance-compose-web-netplay.sh
+          bash -n scripts/build-api-docs.sh
+          bash -n scripts/check-protocol-schemas.sh
+          node scripts/test-web-emulator-assets.mjs
+          ruby -e "require 'yaml'; %w[internal/server/openapi.yaml internal/server/multiplayer_openapi.yaml].each { |path| spec=YAML.load_file(path); abort \"invalid OpenAPI contract: #{path}\" unless spec['openapi']=='3.1.0' && spec['paths'].is_a?(Hash) && spec.dig('components','schemas').is_a?(Hash) }"
+
+      - name: Run retained-output import/export acceptance
+        shell: bash
+        run: ./scripts/acceptance-roundtrip.sh
+
+      - name: Run pinned open-ROM import/export acceptance
+        shell: bash
+        run: ./scripts/acceptance-open-rom-roundtrip.sh
+
+      - name: Run private target-package acceptance
+        shell: bash
+        run: |
+          ./scripts/test-target-package-acceptance-arguments.sh
+          ./scripts/acceptance-target-packages.sh
+
+      - name: Prove release archive reproducibility
+        shell: bash
+        run: ./scripts/acceptance-release-reproducibility.sh
+
+      - name: Run ROCKNIX PPSSPP multi-file Agent acceptance
+        shell: bash
+        run: |
+          docker build --tag varkiv:release-acceptance .
+          VARKIV_PPSSPP_AGENT_IMAGE=varkiv:release-acceptance ./scripts/acceptance-device-ppsspp-save.sh
+
+      - name: Verify published-image NAS Compose and recovery workflow
+        shell: bash
+        run: ./scripts/acceptance-compose-nas.sh --image varkiv:release-acceptance --port 18187 --skip-build --published-compose
+
+      - name: Run SteamOS and Bazzite RetroArch Agent acceptance
+        shell: bash
+        env:
+          VARKIV_STEAMOS_AGENT_IMAGE: varkiv:release-acceptance
+        run: ./scripts/acceptance-device-steamos-save.sh
+
+      - name: Run Windows generated-package Agent process acceptance
+        shell: bash
+        env:
+          VARKIV_WINDOWS_SERVER_IMAGE: varkiv:release-acceptance
+        run: ./scripts/acceptance-device-windows-save.sh
+
+      - name: Run KNULLI packaged service and gameStop hook acceptance
+        shell: bash
+        env:
+          VARKIV_KNULLI_SERVER_IMAGE: varkiv:release-acceptance
+        run: ./scripts/acceptance-device-knulli-hooks.sh
+
+      - name: Run muOS packaged application-entry acceptance
+        shell: bash
+        env:
+          VARKIV_MUOS_SERVER_IMAGE: varkiv:release-acceptance
+        run: ./scripts/acceptance-device-muos-apps.sh
+
+      - name: Run OnionOS ARMv7 packaged App-entry acceptance
+        shell: bash
+        env:
+          VARKIV_ONIONOS_SERVER_IMAGE: varkiv:release-acceptance
+        run: ./scripts/acceptance-device-onionos-apps.sh
+
+      - name: Run browser end-to-end acceptance
+        run: |
+          npm ci
+          npm audit
+          ./scripts/check-protocol-schemas.sh
+          ./scripts/build-api-docs.sh "$RUNNER_TEMP/varkiv-api-docs"
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+          ./scripts/acceptance-compose-web-netplay.sh
+
+      - name: Build reproducible target archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          ./scripts/build-release-archives.sh "$version" dist
+
+      - name: Test and build signed Android release
+        shell: bash
+        env:
+          ANDROID_RELEASE_KEYSTORE_B64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          keystore="$RUNNER_TEMP/varkiv-release-keystore"
+          cleanup() { rm -f -- "$keystore"; }
+          trap cleanup EXIT
+          printf '%s' "$ANDROID_RELEASE_KEYSTORE_B64" | base64 --decode > "$keystore"
+          chmod 600 "$keystore"
+          test -s "$keystore"
+          export ANDROID_KEYSTORE_PATH="$keystore"
+          (
+            cd clients/android
+            ./gradlew --no-daemon testReleaseUnitTest lintRelease bundleRelease assembleRelease
+          )
+          apk=clients/android/app/build/outputs/apk/release/app-release.apk
+          aab=clients/android/app/build/outputs/bundle/release/app-release.aab
+          test -s "$apk"
+          test -s "$aab"
+          unzip -Z1 "$apk" | grep -Fx 'assets/THIRD_PARTY_NOTICES.md'
+          unzip -Z1 "$apk" | grep -Fx 'assets/Apache-2.0.txt'
+          unzip -Z1 "$aab" | grep -Fx 'base/assets/THIRD_PARTY_NOTICES.md'
+          unzip -Z1 "$aab" | grep -Fx 'base/assets/Apache-2.0.txt'
+          ./scripts/verify-android-release-signatures.sh --apk "$apk" --aab "$aab"
+          version="${GITHUB_REF_NAME#v}"
+          install -m 0644 "$apk" "dist/varkiv-${version}-android.apk"
+          install -m 0644 "$aab" "dist/varkiv-${version}-android.aab"
+
+      - name: Generate application SBOM
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go run github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.10.0 app \
+            -licenses -json -output "dist/varkiv-${version}-go.cdx.json" -main cmd/varkiv .
+
+      - name: Prepare tagged container identity
+        id: container
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          version="${GITHUB_REF_NAME#v}"
+          printf 'name=%s\nversion=%s\ntag=%s:%s\n' "$image" "$version" "$image" "$version" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx for release image
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and publish tagged amd64 and arm64 image
+        id: container_push
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.container.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.container.outputs.version }}
+          cache-from: type=gha,scope=varkiv-container
+          cache-to: type=gha,mode=max,scope=varkiv-container
+          provenance: mode=max
+          sbom: true
+
+      - name: Attest tagged container provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-name: ${{ steps.container.outputs.name }}
+          subject-digest: ${{ steps.container_push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Add digest-pinned Compose to release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          image_ref='${{ steps.container.outputs.name }}@${{ steps.container_push.outputs.digest }}'
+          ./scripts/render-container-deployment.sh \
+            --image "$image_ref" \
+            --out "dist/varkiv-${version}-compose.yaml"
+          awk -v image="$image_ref" \
+            '/^VARKIV_IMAGE=/{print "VARKIV_IMAGE=" image; next} {print}' \
+            .env.ghcr.example > "dist/varkiv-${version}-env.example"
+          printf '%s\n' "$image_ref" > "dist/varkiv-${version}-container-image.txt"
+
+      - name: Generate release checksums
+        shell: bash
+        run: |
+          cd dist
+          sha256sum ./* > SHA256SUMS
+
+      - name: Generate signed build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: 'dist/*'
+
+      - name: Publish immutable preview assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --prerelease

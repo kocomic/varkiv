@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 72" role="img" aria-labelledby="title desc">
+  <title id="title">Varkiv</title>
+  <desc id="desc">Varkiv logo: an angular layered V and wordmark.</desc>
+  <g transform="translate(4 4)">
+    <path fill="#514770" d="M9 8h50v42L49 60H17L8 51z"/>
+    <path fill="#07080B" d="M4 4h52v42L46 56H14L4 46z"/>
+    <path fill="#B9F264" d="M10 11h13l9 29 9-29h13L39 51H25z"/>
+    <path fill="#07080B" d="M22 16h8l2 14 3-14h8L32 44z"/>
+    <path fill="#F4F6F0" d="M15 15h5l10 30-4 4z"/>
+  </g>
+  <text x="88" y="49" fill="#F4F6F0" font-family="Arial Black,Arial,sans-serif" font-size="43" font-weight="900" letter-spacing="2">VARKIV</text>
+</svg>

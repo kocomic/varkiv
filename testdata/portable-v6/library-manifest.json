@@ -1,0 +1,53 @@
+{
+  "format_version": 6,
+  "frontend": "es-de",
+  "locale": "en",
+  "custom_platforms": [
+    {
+      "id": "portable-v6",
+      "name": "Portable V6",
+      "name_zh": "便携测试平台",
+      "vendor": "Fixture Community",
+      "category": "handheld",
+      "aliases": ["pv6"],
+      "extensions": [".opk"],
+      "esde_systems": ["portable-v6-es"],
+      "bios": "none",
+      "runtime": "native",
+      "suggested_emulators": {
+        "handheld_linux": ["Fixture Player"]
+      }
+    }
+  ],
+  "series": [],
+  "entries": [
+    {
+      "game_id": "e2e-portable-v6-game",
+      "edition_id": "e2e-portable-v6-edition",
+      "platform": "portable-v6",
+      "game_default_title": "Portable V6 Game",
+      "game_titles": {
+        "zh-CN": "便携平台游戏",
+        "en": "Portable V6 Game"
+      },
+      "edition_default_title": "Original",
+      "edition_titles": {
+        "zh-CN": "原版",
+        "en": "Original"
+      },
+      "edition_type": "original",
+      "languages": ["en"],
+      "artifacts": ["roms/demo.opk"],
+      "artifact_records": [
+        {
+          "path": "roms/demo.opk",
+          "role": "rom",
+          "original_name": "demo.opk",
+          "size": 24,
+          "sha256": "f419f5465bbdec998b6b38dc1e3e33d044ea3c2245ed0ef793d8f94b74b61581"
+        }
+      ],
+      "media": []
+    }
+  ]
+}

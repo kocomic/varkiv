@@ -1,0 +1,19 @@
+{
+  "name": "varkiv",
+  "version": "0.1.0-preview.1",
+  "private": true,
+  "scripts": {
+    "test:web-emulator-assets": "node scripts/test-web-emulator-assets.mjs",
+    "verify:web-emulator-assets": "node scripts/verify-web-emulator-assets.mjs",
+    "fetch:web-emulator-assets": "node scripts/fetch-web-emulator-assets.mjs",
+    "fetch:web-netplay-assets": "node scripts/fetch-web-netplay-assets.mjs",
+    "verify:web-netplay-assets": "node scripts/verify-web-netplay-assets.mjs",
+    "acceptance:web-netplay": "node scripts/acceptance-web-netplay.mjs",
+    "acceptance:web-netplay:container": "./scripts/acceptance-compose-web-netplay.sh",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
+  }
+}

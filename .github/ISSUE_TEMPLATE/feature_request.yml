@@ -1,0 +1,35 @@
+name: Feature request
+description: Propose a focused product, platform, client, or protocol improvement.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the user need before proposing an implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Platforms and clients
+      description: Name the exact OS, handheld, frontend, emulator, core, or API consumer involved.
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and data-safety impact
+      description: Note expected effects on ROM identity, manifests, saves, storage, APIs, or existing deployments.
+  - type: checkboxes
+    id: boundaries
+    attributes:
+      label: Project boundaries
+      options:
+        - label: This request does not require distributing commercial ROMs, BIOS, firmware, keys, or restricted emulator assets.
+          required: true

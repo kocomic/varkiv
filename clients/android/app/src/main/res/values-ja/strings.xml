@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Varkiv デバイスクライアント</string>
+    <string name="title">デバイスクライアント</string>
+    <string name="subtitle">この端末をペアリングし、選択したフォルダーだけを許可して、セーブを自動同期します。</string>
+    <string name="server_url">サーバー URL</string>
+    <string name="pairing_code">ペアリングコード</string>
+    <string name="device_name">デバイス名</string>
+    <string name="rom_platform">この ROM フォルダーの機種</string>
+    <string name="rom_platform_unavailable">サーバーとペアリングして機種を読み込みます</string>
+    <string name="allow_http">暗号化されていない HTTP を明示的に許可（信頼できる LAN のみ）</string>
+    <string name="pair">デバイスをペアリング</string>
+    <string name="save_folder">セーブフォルダーを選択</string>
+    <string name="emulator_save_driver">エミュレーター別セーブフォルダー</string>
+    <string name="emulator_save_folder">選択したエミュレーターのフォルダーを選択</string>
+    <plurals name="driver_save_folders_granted">
+        <item quantity="other">%1$d 件のエミュレーター用セーブフォルダーを許可済み</item>
+    </plurals>
+    <string name="runtime_verification_title">エミュレーターとコアの厳密な検証</string>
+    <string name="runtime_verification_file">選択中のランタイムファイルを指定</string>
+    <string name="runtime_verification_unavailable">現在、検証が必要なランタイムファイルはありません</string>
+    <plurals name="runtime_files_granted">
+        <item quantity="other">要求されたランタイムファイル %2$d 件中 %1$d 件を許可済み</item>
+    </plurals>
+    <string name="runtime_files_not_required">この端末では現在、ランタイムファイルの検証は不要です</string>
+    <string name="rom_folder">ROM フォルダーを追加または更新</string>
+    <string name="sync_now">今すぐ同期</string>
+    <string name="schedule_sync">定期同期を有効化</string>
+    <string name="sync_unscheduled">定期同期を無効にしました</string>
+    <string name="auto_state_disabled">自動同期はオフです</string>
+    <string name="auto_state_scheduled">15 分ごとに試行し、ネットワーク・バッテリー・ストレージの条件が整った場合に実行します</string>
+    <string name="auto_state_running">自動同期を実行中…</string>
+    <string name="auto_state_complete">前回の自動同期：↑%1$d ↓%2$d ⚠%3$d</string>
+    <string name="auto_state_failed">前回の自動同期は安全に失敗しました · %1$s</string>
+    <string name="auto_state_deferred">Android が前回の処理を停止しました。条件が整い次第再試行します</string>
+    <string name="auto_error_permission">フォルダー権限を利用できません</string>
+    <string name="auto_error_timeout">ネットワーク要求がタイムアウトしました</string>
+    <string name="auto_error_network">サーバーへ接続できません</string>
+    <string name="auto_error_io">ネットワークまたはストレージ処理に失敗しました</string>
+    <string name="auto_error_configuration">設定またはサーバープロトコルが拒否されました</string>
+    <string name="auto_error_generic">ローカルデータを変更せず安全に同期を中止しました</string>
+    <string name="launch_game">一致したゲームを起動</string>
+    <string name="no_launches">利用可能な Android 起動設定がありません</string>
+    <string name="granted">フォルダーへのアクセスを許可済み</string>
+    <plurals name="rom_folders_granted">
+        <item quantity="other">%1$d 機種の ROM フォルダーを許可済み</item>
+    </plurals>
+    <string name="not_granted">フォルダーは未許可</string>
+    <string name="paired">安全にペアリング済み</string>
+    <string name="pair_failed">ペアリング失敗</string>
+    <string name="repair_title">現在のペアリングを置き換えますか？</string>
+    <string name="repair_message">新しい端末 ID を作成し、端末内の同期リビジョン、保留中の操作、起動設定、ROM ハッシュキャッシュを消去します。選択済みフォルダーの権限とファイルは保持されます。</string>
+    <string name="repair_confirm">ペアリングを置き換える</string>
+    <string name="sync_scheduled">定期同期を予約しました。Android が省電力のため実行を遅らせる場合があります。</string>
+    <string name="sync_running">同期中…</string>
+    <string name="sync_complete">同期完了</string>
+    <string name="sync_failed">同期失敗</string>
+    <string name="acceptance_title">実機受け入れテスト</string>
+    <string name="acceptance_intro">この端末で実際に完了した項目だけを選択してください。エクスポートはプライバシーを最小化した候補レポートを新規作成し、アップロードや上書きは行いません。</string>
+    <string name="acceptance_frontend_launch">フロントエンド起動を完了</string>
+    <string name="acceptance_rom_launch">ローカル ROM の起動に成功</string>
+    <string name="acceptance_emulator_exit">エミュレーター終了後に安全に復帰</string>
+    <string name="acceptance_saf_rom">再起動後も SAF ROM フォルダー権限が有効</string>
+    <string name="acceptance_saf_save">SAF セーブフォルダーの読み書きを完了</string>
+    <string name="acceptance_keystore">再起動後も Android Keystore のペアリングトークンが有効</string>
+    <string name="acceptance_retroarch">RetroArch Intent で一致したゲームを起動</string>
+    <string name="acceptance_ppsspp">PPSSPP Intent で一致したゲームを起動</string>
+    <string name="acceptance_background">Android に延期された後、バックグラウンド同期が復帰</string>
+    <string name="acceptance_upgrade">アプリ更新後もペアリングとフォルダー権限を保持</string>
+    <plurals name="acceptance_progress">
+        <item quantity="other">必須項目 %1$d / %2$d を確認済み</item>
+    </plurals>
+    <string name="acceptance_export">新しい候補レポートを書き出す</string>
+    <string name="acceptance_requires_pairing">レポートを書き出す前に、この端末をペアリングしてください。</string>
+    <string name="acceptance_incomplete">全実機項目を完了し、ROM とセーブフォルダーを許可し、RetroArch と PPSSPP をインストールして、少なくとも一つの一致済み RetroArch コアを同期してから書き出してください。</string>
+    <string name="acceptance_exported">候補レポートを新規作成しました。共有前に端末上で確認してください。</string>
+    <string name="acceptance_export_failed">候補レポートを新規作成できませんでした。既存ファイルは変更されていません。</string>
+    <string name="privacy_note">ROM 名、ローカルパス、SAF URI、アクセストークンは端末内に保持されます。サーバーへ送るのはハッシュ、サイズ、可搬 ID、およびセーブ設定で明示されたバイトだけです。</string>
+    <string name="third_party_licenses">オープンソースライセンス</string>
+    <string name="third_party_licenses_title">プロジェクトライセンスとサードパーティー通知</string>
+    <string name="third_party_licenses_unavailable">アプリに同梱されたライセンス情報を開けませんでした。</string>
+    <string name="apache_license_heading">プロジェクトライセンス：Apache-2.0</string>
+</resources>

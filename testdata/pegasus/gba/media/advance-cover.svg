@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="336" viewBox="0 0 240 336" role="img" aria-labelledby="title">
+  <title id="title">Fictional Advance fixture cover</title>
+  <rect width="240" height="336" fill="#12151c"/>
+  <path d="M0 222 240 92v92L0 314Z" fill="#e64b2f"/>
+  <path d="M0 250 240 120" stroke="#f8d34d" stroke-width="10"/>
+  <text x="22" y="64" fill="#f5f1e8" font-family="sans-serif" font-size="26" font-weight="800">FIXTURE</text>
+  <text x="22" y="94" fill="#f5f1e8" font-family="sans-serif" font-size="18">ADVANCE</text>
+</svg>

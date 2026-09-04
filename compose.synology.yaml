@@ -1,0 +1,43 @@
+name: varkiv
+
+services:
+  app:
+    image: "${VARKIV_IMAGE:-varkiv:0.1.0-preview.1}"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: "10001:10001"
+    environment:
+      GAME_LIBRARY_TOKEN: "${GAME_LIBRARY_TOKEN:?Set GAME_LIBRARY_TOKEN in the private project environment}"
+      VARKIV_WEB_EMULATOR_ASSETS: "${VARKIV_WEB_EMULATOR_ASSETS:-}"
+      VARKIV_WEB_EMULATOR_DIRECTORY: ""
+      TZ: "${TZ:-Asia/Shanghai}"
+    ports:
+      - "${VARKIV_BIND:-0.0.0.0}:${VARKIV_PORT:-8080}:8080"
+    volumes:
+      - type: bind
+        source: "${VARKIV_DATA_PATH:?Set VARKIV_DATA_PATH to an existing absolute local NAS path}"
+        target: /data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: "${ROM_LIBRARY_PATH:?Set ROM_LIBRARY_PATH to an existing absolute ROM directory}"
+        target: /library
+        read_only: true
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/api/v1/health/ready"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3

@@ -1,0 +1,386 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Go ${{ matrix.go }} / ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ['1.26.6']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Reject private data and unapproved ROM fixtures
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          ./scripts/check-source-hygiene.sh
+          ./scripts/test-source-hygiene.sh
+
+      - name: Verify immutable GitHub Action references
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          ./scripts/check-github-actions-pinning.sh
+          ./scripts/test-github-actions-pinning.sh
+
+      - name: Verify release version identity
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./scripts/check-version.sh
+
+      - name: Verify documentation links
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 ./scripts/check-docs.py
+
+      - name: Verify published container Compose rendering
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./scripts/test-render-container-deployment.sh
+
+      - name: Verify device acceptance CLI argument safety
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./scripts/test-acceptance-device-cli.sh
+
+      - name: Verify NAS deployment preflight boundaries
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./scripts/test-nas-preflight.sh
+
+      - name: Build privacy-safe NAS source bundle
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./scripts/build-nas-deployment-bundle.sh --out "$RUNNER_TEMP/varkiv-nas-source.tar.gz"
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: ${{ matrix.go }}
+          cache-dependency-path: go.sum
+
+      - name: Verify Go module checksums
+        run: go mod verify
+
+      - name: Verify Go runtime license inventory
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./scripts/check-third-party-notices.sh --go
+
+      - name: Check formatting
+        if: runner.os == 'Linux'
+        shell: bash
+        run: test -z "$(gofmt -l .)"
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race -coverprofile=coverage.out ./...
+
+      - name: Run retained-output import/export round trip
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./scripts/acceptance-roundtrip.sh
+
+      - name: Run pinned open-ROM import/export round trip
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./scripts/acceptance-open-rom-roundtrip.sh
+
+      - name: Scan reachable Go vulnerabilities
+        if: runner.os == 'Linux'
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+
+      - name: Enforce coverage floor
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          coverage="$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%", "", $3); print $3}')"
+          awk -v coverage="$coverage" 'BEGIN { if (coverage < 50) exit 1 }'
+          echo "Total statement coverage: ${coverage}%"
+
+      - name: Build
+        run: go build ./...
+
+      - name: Check embedded JavaScript syntax
+        if: runner.os == 'Linux'
+        run: |
+          node --check internal/server/web/app.js
+          node --check internal/server/web/i18n.js
+          node --check scripts/lib/web-emulator-assets.mjs
+          node --check scripts/fetch-web-emulator-assets.mjs
+          node --check scripts/verify-web-emulator-assets.mjs
+          node --check scripts/test-web-emulator-assets.mjs
+          node --check scripts/acceptance-web-emulation.mjs
+          node --check scripts/fetch-web-netplay-assets.mjs
+          node --check scripts/verify-web-netplay-assets.mjs
+          node --check scripts/acceptance-web-netplay.mjs
+          sh -n scripts/acceptance-compose-web-netplay.sh
+          bash -n scripts/build-api-docs.sh
+          bash -n scripts/check-protocol-schemas.sh
+          node scripts/test-web-emulator-assets.mjs
+
+      - name: Parse OpenAPI contract
+        if: runner.os == 'Linux'
+        run: |
+          ruby -e "require 'yaml'; %w[internal/server/openapi.yaml internal/server/multiplayer_openapi.yaml].each { |path| spec=YAML.load_file(path); abort \"invalid OpenAPI contract: #{path}\" unless spec['openapi']=='3.1.0' && spec['paths'].is_a?(Hash) && spec.dig('components','schemas').is_a?(Hash) }"
+
+  e2e:
+    name: Playwright / Chromium
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: '1.26.6'
+          cache-dependency-path: go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.x'
+          cache: npm
+
+      - name: Install test dependencies
+        run: npm ci
+
+      - name: Lint and build both API references
+        run: ./scripts/build-api-docs.sh "$RUNNER_TEMP/varkiv-api-docs"
+
+      - name: Validate public portable-format schemas
+        run: ./scripts/check-protocol-schemas.sh
+
+      - name: Verify Node development license inventory
+        run: |
+          ./scripts/check-third-party-notices.sh --node
+          ./scripts/test-third-party-notices.sh
+
+      - name: Audit Node dependencies
+        run: npm audit
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run browser end-to-end tests
+        run: npm run test:e2e
+
+      - name: Run isolated two-browser netplay acceptance
+        run: ./scripts/acceptance-compose-web-netplay.sh
+
+  android:
+    name: Android Agent-lite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            clients/android/*.gradle.kts
+            clients/android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+
+      - name: Install pinned Android platform
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Test strict Android release signature verification
+        run: ./scripts/test-android-release-signatures.sh
+
+      - name: Verify Android release runtime license inventory
+        working-directory: clients/android
+        run: ../../scripts/check-third-party-notices.sh --android
+
+      - name: Test, lint, and build debug APK
+        working-directory: clients/android
+        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
+
+      - name: Exercise release signing with an ephemeral fixture key
+        working-directory: clients/android
+        shell: bash
+        run: |
+          set -euo pipefail
+          keystore="$RUNNER_TEMP/varkiv-ci-fixture-release.jks"
+          cleanup() { rm -f -- "$keystore"; }
+          trap cleanup EXIT
+          test ! -e "$keystore"
+          keytool -genkeypair -noprompt \
+            -keystore "$keystore" -storepass fixture-password \
+            -keypass fixture-password -alias fixture -keyalg RSA -keysize 2048 \
+            -validity 2 -dname 'CN=Varkiv CI Fixture, OU=Test, O=Example, L=Test, ST=Test, C=ZZ'
+          chmod 600 "$keystore"
+          ANDROID_KEYSTORE_PATH="$keystore" \
+            ANDROID_KEYSTORE_PASSWORD=fixture-password \
+            ANDROID_KEY_ALIAS=fixture \
+          ANDROID_KEY_PASSWORD=fixture-password \
+            ./gradlew --no-daemon testReleaseUnitTest lintRelease bundleRelease assembleRelease
+          unzip -Z1 app/build/outputs/apk/release/app-release.apk | grep -Fx 'assets/THIRD_PARTY_NOTICES.md'
+          unzip -Z1 app/build/outputs/apk/release/app-release.apk | grep -Fx 'assets/Apache-2.0.txt'
+          unzip -Z1 app/build/outputs/bundle/release/app-release.aab | grep -Fx 'base/assets/THIRD_PARTY_NOTICES.md'
+          unzip -Z1 app/build/outputs/bundle/release/app-release.aab | grep -Fx 'base/assets/Apache-2.0.txt'
+          ../../scripts/verify-android-release-signatures.sh \
+            --apk app/build/outputs/apk/release/app-release.apk \
+            --aab app/build/outputs/bundle/release/app-release.aab
+
+  android-instrumentation:
+    name: Android paired SAF sync instrumentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            clients/android/*.gradle.kts
+            clients/android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: '1.26.6'
+          cache-dependency-path: go.sum
+
+      - name: Install pinned build platform and disposable emulator
+        run: sdkmanager 'platform-tools' 'emulator' 'platforms;android-36' 'build-tools;36.0.0' 'system-images;android-35;google_apis;x86_64'
+
+      - name: Run paired upload, download, and conflict flow on an isolated AVD
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo chmod 666 /dev/kvm
+          ./scripts/acceptance-android-emulator.sh --port 18088
+
+  container:
+    name: Hardened container smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: '1.26.6'
+          cache-dependency-path: go.sum
+
+      - name: Register ARM64 and ARMv7 user-mode execution
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+        with:
+          platforms: arm64,arm
+
+      - name: Build and run isolated container acceptance
+        shell: bash
+        run: ./scripts/acceptance-container.sh --image varkiv:ci --port 18083
+
+      - name: Verify read-only Compose browser-player overlay
+        shell: bash
+        run: ./scripts/acceptance-compose-web-emulation.sh --image varkiv:ci --port 18084 --skip-build
+
+      - name: Verify NAS host-bind deployment and recovery workflow
+        shell: bash
+        run: ./scripts/acceptance-compose-nas.sh --image varkiv:ci --port 18186 --skip-build
+
+      - name: Verify published-image NAS Compose and recovery workflow
+        shell: bash
+        run: ./scripts/acceptance-compose-nas.sh --image varkiv:ci --port 18187 --skip-build --published-compose
+
+      - name: Run ROCKNIX PPSSPP multi-file Agent acceptance
+        shell: bash
+        env:
+          VARKIV_PPSSPP_AGENT_IMAGE: varkiv:ci
+        run: ./scripts/acceptance-device-ppsspp-save.sh
+
+      - name: Run SteamOS and Bazzite RetroArch Agent acceptance
+        shell: bash
+        env:
+          VARKIV_STEAMOS_AGENT_IMAGE: varkiv:ci
+        run: ./scripts/acceptance-device-steamos-save.sh
+
+      - name: Run Windows generated-package Agent process acceptance
+        shell: bash
+        env:
+          VARKIV_WINDOWS_SERVER_IMAGE: varkiv:ci
+        run: ./scripts/acceptance-device-windows-save.sh
+
+      - name: Run KNULLI packaged service and gameStop hook acceptance
+        shell: bash
+        env:
+          VARKIV_KNULLI_SERVER_IMAGE: varkiv:ci
+        run: ./scripts/acceptance-device-knulli-hooks.sh
+
+      - name: Run muOS packaged application-entry acceptance
+        shell: bash
+        env:
+          VARKIV_MUOS_SERVER_IMAGE: varkiv:ci
+        run: ./scripts/acceptance-device-muos-apps.sh
+
+      - name: Run OnionOS ARMv7 packaged App-entry acceptance
+        shell: bash
+        env:
+          VARKIV_ONIONOS_SERVER_IMAGE: varkiv:ci
+        run: ./scripts/acceptance-device-onionos-apps.sh
+
+      - name: Verify failed-start cleanup preserves an existing listener
+        shell: bash
+        run: ./scripts/test-container-acceptance-cleanup.sh --image varkiv:ci --port 18083
+
+  target-builds:
+    name: Device Agent target builds
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: '1.26.6'
+          cache-dependency-path: go.sum
+
+      - name: Verify module checksums
+        run: go mod verify
+
+      - name: Cross-compile supported Agent architectures
+        shell: bash
+        run: |
+          ./scripts/test-target-package-acceptance-arguments.sh
+          ./scripts/acceptance-target-packages.sh
+
+      - name: Prove release archive reproducibility
+        shell: bash
+        run: ./scripts/acceptance-release-reproducibility.sh

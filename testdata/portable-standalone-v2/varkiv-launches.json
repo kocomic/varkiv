@@ -1,0 +1,43 @@
+{
+  "format_version": 2,
+  "device_profile_id": "builtin-device-windows-handheld",
+  "frontend_adapter_id": "builtin-frontend-pegasus",
+  "bindings": [
+    {
+      "edition_id": "e2e-standalone-v2-edition",
+      "platform_id": "psp",
+      "rom_path": "psp/standalone-v2.iso",
+      "binding": {
+        "device_profile_id": "builtin-device-windows-handheld",
+        "frontend_adapter_id": "builtin-frontend-pegasus",
+        "driver_id": "builtin-driver-ppsspp",
+        "arguments": ["{{rom.path}}"]
+      },
+      "arguments": ["psp/standalone-v2.iso"],
+      "executable_hints": ["PPSSPPWindows64.exe", "PPSSPPWindows.exe"]
+    }
+  ],
+  "runtime_catalog": {
+    "package_profile": {
+      "id": "e2e-standalone-v2-profile",
+      "name": "Portable PPSSPP package",
+      "frontend": "pegasus",
+      "target": "windows",
+      "device_profile_id": "builtin-device-windows-handheld",
+      "frontend_adapter_id": "builtin-frontend-pegasus",
+      "locale": "en",
+      "file_mode": "copy",
+      "output_slug": "e2e-standalone-v2",
+      "enabled": true,
+      "templates": [
+        {
+          "name": "PPSSPP edition binding",
+          "scope": "edition",
+          "output_path": "config/ppsspp/{{edition.id}}.ini",
+          "body": "driver={{driver.id}}\nrom={{rom.path}}\nproduct_code={{edition.product_code}}\nsave_root={{device.save_dir}}\n",
+          "sort_order": 10
+        }
+      ]
+    }
+  }
+}

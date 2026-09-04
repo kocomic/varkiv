@@ -1,0 +1,10 @@
+collection: Nintendo DS
+launch: unsafe-frontend-command --rom {file.path}
+
+game: Runtime Hint Demo
+file: Runtime Hint Demo.nds
+x-varkiv-game-id: e2e-runtime-game
+x-varkiv-edition-id: e2e-runtime-edition
+x-varkiv-game-title: Runtime Hint Demo
+x-varkiv-edition-title: Original
+x-varkiv-edition-type: original

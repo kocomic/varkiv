@@ -1,0 +1,24 @@
+{
+  "format_version": 1,
+  "device_profile_id": "builtin-device-windows-handheld",
+  "frontend_adapter_id": "builtin-frontend-pegasus",
+  "bindings": [
+    {
+      "edition_id": "e2e-neutral-edition",
+      "rom_path": "neutral/gba/recovery.gba",
+      "binding": {
+        "driver_id": "builtin-driver-retroarch",
+        "core_id": "builtin-core-mgba",
+        "arguments": ["-L", "{{core.library}}", "{{rom.path}}"]
+      },
+      "driver": {
+        "id": "builtin-driver-retroarch"
+      },
+      "core_resolution": {
+        "core": {
+          "id": "builtin-core-mgba"
+        }
+      }
+    }
+  ]
+}

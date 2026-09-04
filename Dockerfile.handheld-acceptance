@@ -1,0 +1,9 @@
+FROM bash:5.3.15-alpine3.24@sha256:a19c811ee9e97fa8a080001d82b8e0ded303f0795cffdb1cbd162731bc8ce208
+
+# Acceptance-only handheld shell runtime. CI builds the same pinned source
+# image for ARM64 hook packages and ARMv7 OnionOS App entries. It is never
+# shipped as part of Varkiv or copied into a device package.
+
+RUN ln -s /usr/local/bin/bash /bin/bash
+
+ENTRYPOINT ["/bin/bash"]

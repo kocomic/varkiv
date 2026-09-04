@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="336" viewBox="0 0 240 336" role="img" aria-labelledby="title">
+  <title id="title">虚构 ES-DE 验收封面</title>
+  <rect width="240" height="336" fill="#10151b"/>
+  <path d="M18 42h204v252H18z" fill="none" stroke="#4fd1a1" stroke-width="8"/>
+  <path d="m36 226 168-116v68L36 294Z" fill="#7067f0"/>
+  <text x="36" y="92" fill="#f5f1e8" font-family="sans-serif" font-size="24" font-weight="800">测试封面</text>
+  <text x="36" y="122" fill="#4fd1a1" font-family="sans-serif" font-size="17">ES-DE FIXTURE</text>
+</svg>

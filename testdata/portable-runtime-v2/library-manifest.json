@@ -1,0 +1,25 @@
+{
+  "format_version": 6,
+  "frontend": "pegasus",
+  "locale": "zh-CN",
+  "custom_platforms": [],
+  "series": [],
+  "entries": [
+    {
+      "game_id": "e2e-runtime-v2-game",
+      "edition_id": "e2e-runtime-v2-edition",
+      "platform": "gba",
+      "game_default_title": "Portable Runtime V2",
+      "game_titles": {"zh-CN": "便携运行配置 V2"},
+      "edition_default_title": "Original",
+      "edition_titles": {"zh-CN": "原版"},
+      "edition_type": "original",
+      "languages": ["en"],
+      "artifacts": ["gba/runtime-v2.gba"],
+      "artifact_records": [
+        {"path": "gba/runtime-v2.gba", "role": "rom", "original_name": "runtime-v2.gba", "size": 24, "sha256": "2446c56e0d42853712e2e794b5cd42e58344fee5b1e3604519ecb79b998785bd"}
+      ],
+      "media": []
+    }
+  ]
+}

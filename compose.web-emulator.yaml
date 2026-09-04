@@ -1,0 +1,12 @@
+services:
+  app:
+    environment:
+      VARKIV_WEB_EMULATOR_ASSETS: ""
+      VARKIV_WEB_EMULATOR_DIRECTORY: /opt/emulatorjs
+    volumes:
+      - type: bind
+        source: "${EMULATORJS_DATA_PATH:?Set EMULATORJS_DATA_PATH to an absolute EmulatorJS data directory}"
+        target: /opt/emulatorjs
+        read_only: true
+        bind:
+          create_host_path: false

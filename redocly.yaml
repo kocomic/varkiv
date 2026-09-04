@@ -1,0 +1,7 @@
+extends:
+  - recommended
+
+rules:
+  # Public discovery, health, and readiness GETs have no truthful 4xx outcome.
+  # Authenticated operations still document their shared 401 response.
+  operation-4xx-response: off

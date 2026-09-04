@@ -1,0 +1,11 @@
+# The default crates.io sparse endpoint is intermittently unreachable from
+# mainland-China Docker networks. Cargo still enforces every checksum recorded
+# in the upstream Cargo.lock when this transport mirror is used.
+[source.crates-io]
+replace-with = "rsproxy-sparse"
+
+[source.rsproxy-sparse]
+registry = "sparse+https://rsproxy.cn/index/"
+
+[net]
+retry = 3

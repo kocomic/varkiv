@@ -1,0 +1,47 @@
+{
+  "format": "varkiv-hardware-acceptance-v1",
+  "generated_at": "2026-08-27T08:00:00Z",
+  "agent_version": "0.1.0-preview.1",
+  "host_os": "android",
+  "host_architecture": "arm64",
+  "target": "android",
+  "config_protected": true,
+  "roots": {
+    "agent_root_real": true,
+    "rom_roots_configured": 2,
+    "rom_roots_real": true,
+    "driver_roots_configured": 0,
+    "driver_roots_real": true,
+    "path_overrides": 0
+  },
+  "runtime": {
+    "target": "android",
+    "emulator_dir_configured": false,
+    "core_dir_configured": false,
+    "drivers": [
+      {"id": "builtin-driver-ppsspp", "name": "PPSSPP", "status": "installed"},
+      {"id": "builtin-driver-retroarch", "name": "RetroArch", "status": "installed"}
+    ],
+    "retroarch_cores": [
+      {"id": "builtin-core-ppsspp", "name": "PPSSPP", "status": "installed"}
+    ],
+    "installed_drivers": 2,
+    "installed_cores": 1
+  },
+  "observed_on_hardware": [
+    "background-recovery",
+    "emulator-exit",
+    "frontend-launch",
+    "keystore-token",
+    "ppsspp-intent",
+    "retroarch-intent",
+    "rom-launch",
+    "saf-rom-root",
+    "saf-save-tree",
+    "upgrade"
+  ],
+  "software_preflight_passed": true,
+  "evidence_level": "candidate",
+  "requires_maintainer_review": true,
+  "contains_private_data": false
+}

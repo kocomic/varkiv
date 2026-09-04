@@ -1,0 +1,61 @@
+{
+  "format_version": 4,
+  "frontend": "",
+  "locale": "zh-CN",
+  "series": [
+    {
+      "id": "e2e-neutral-series",
+      "default_title": "Neutral Recovery Series",
+      "display_title": "中性恢复系列",
+      "titles": {
+        "zh-CN": "中性恢复系列",
+        "en": "Neutral Recovery Series"
+      },
+      "members": [
+        {
+          "game_id": "e2e-neutral-game",
+          "relation_type": "mainline",
+          "sort_order": 0
+        }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "game_id": "e2e-neutral-game",
+      "edition_id": "e2e-neutral-edition",
+      "platform": "gba",
+      "game_default_title": "Neutral Recovery Game",
+      "game_titles": {
+        "zh-CN": "中性恢复游戏",
+        "en": "Neutral Recovery Game"
+      },
+      "edition_default_title": "Original",
+      "edition_titles": {
+        "zh-CN": "原版",
+        "en": "Original"
+      },
+      "edition_type": "original",
+      "languages": ["zh-CN", "en"],
+      "artifacts": ["gba/recovery.gba"],
+      "media": []
+    },
+    {
+      "game_id": "e2e-neutral-missing-game",
+      "edition_id": "e2e-neutral-missing-edition",
+      "platform": "nds",
+      "game_default_title": "Neutral Missing Game",
+      "game_titles": {
+        "en": "Neutral Missing Game"
+      },
+      "edition_default_title": "Translation",
+      "edition_titles": {
+        "en": "Translation"
+      },
+      "edition_type": "translation",
+      "languages": ["en"],
+      "artifacts": ["nds/missing.nds"],
+      "media": []
+    }
+  ]
+}

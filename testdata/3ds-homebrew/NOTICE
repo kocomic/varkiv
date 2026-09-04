@@ -1,0 +1,7 @@
+Varkiv deterministic Nintendo 3DS acceptance fixture
+
+Copyright 2026 Varkiv contributors
+SPDX-License-Identifier: Apache-2.0
+
+This source is built only inside the isolated acceptance workflow. The generated
+3DSX file is not committed and contains no commercial game data or system files.

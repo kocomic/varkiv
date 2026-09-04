@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:varkiv:schema:hashpack-manifest:1",
+  "title": "Varkiv HashPack manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format_version",
+    "pack_id",
+    "source",
+    "release",
+    "created_at",
+    "record_count",
+    "records_sha256"
+  ],
+  "properties": {
+    "format_version": { "const": 1 },
+    "pack_id": { "$ref": "#/$defs/sha256" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "license"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+        },
+        "name": { "$ref": "#/$defs/sourceText" },
+        "publisher": { "$ref": "#/$defs/optionalSourceText" },
+        "license": { "$ref": "#/$defs/sourceText" }
+      }
+    },
+    "release": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "record_count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "records_sha256": { "$ref": "#/$defs/sha256" }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "sourceText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "optionalSourceText": {
+      "type": "string",
+      "maxLength": 200,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]*$"
+    }
+  }
+}

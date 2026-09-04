@@ -1,0 +1,432 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:varkiv:schema:launch-sidecar:2",
+  "title": "Varkiv launch sidecar v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format_version",
+    "device_profile_id",
+    "bindings"
+  ],
+  "properties": {
+    "format_version": { "const": 2 },
+    "device_profile_id": { "type": "string", "maxLength": 128 },
+    "frontend_adapter_id": { "$ref": "#/$defs/id" },
+    "bindings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/launchResolution" }
+    },
+    "runtime_catalog": { "$ref": "#/$defs/runtimeCatalog" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "nonEmpty": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "portablePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)(?!.*[\\\\\\u0000\\r\\n])[^/]+(?:/[^/]+)*$"
+    },
+    "safeText": {
+      "type": "string",
+      "maxLength": 2048,
+      "pattern": "^[^\\u0000\\r\\n]*$"
+    },
+    "arguments": {
+      "type": "array",
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/safeText" }
+    },
+    "stringArray": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "supportLevel": { "const": "catalogued" },
+    "launchResolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edition_id",
+        "platform_id",
+        "rom_path",
+        "binding",
+        "arguments",
+        "executable_hints"
+      ],
+      "properties": {
+        "edition_id": { "$ref": "#/$defs/nonEmpty" },
+        "platform_id": { "$ref": "#/$defs/nonEmpty" },
+        "rom_path": { "$ref": "#/$defs/portablePath" },
+        "binding": { "$ref": "#/$defs/launchBinding" },
+        "arguments": { "$ref": "#/$defs/arguments" },
+        "executable_hints": { "$ref": "#/$defs/stringArray" },
+        "android_package": { "type": "string" },
+        "android_activity": { "type": "string" },
+        "warnings": { "$ref": "#/$defs/stringArray" }
+      }
+    },
+    "launchBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["driver_id", "arguments"],
+      "properties": {
+        "device_profile_id": { "$ref": "#/$defs/id" },
+        "frontend_adapter_id": { "$ref": "#/$defs/id" },
+        "driver_id": { "$ref": "#/$defs/id" },
+        "core_id": { "$ref": "#/$defs/id" },
+        "arguments": { "$ref": "#/$defs/arguments" }
+      }
+    },
+    "runtimeCatalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "frontend_adapters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/frontendAdapter" }
+        },
+        "device_profiles": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/deviceProfile" }
+        },
+        "emulator_drivers": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/emulatorDriver" }
+        },
+        "retroarch_cores": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/retroarchCore" }
+        },
+        "package_profile": { "$ref": "#/$defs/packageProfile" }
+      }
+    },
+    "frontendAdapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "format",
+        "handler",
+        "contract_version",
+        "support_level",
+        "enabled"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/nonEmpty" },
+        "format": {
+          "type": "string",
+          "pattern": "^[a-z0-9._-]+$"
+        },
+        "handler": { "enum": ["", "pegasus", "es-de"] },
+        "contract_version": { "type": "integer", "minimum": 1 },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": { "type": "boolean" }
+        },
+        "support_level": { "$ref": "#/$defs/supportLevel" },
+        "enabled": { "const": true }
+      }
+    },
+    "deviceProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "contract_version",
+        "target",
+        "os_family",
+        "path_style",
+        "case_sensitive",
+        "max_path",
+        "support_level",
+        "enabled"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/nonEmpty" },
+        "contract_version": { "type": "integer", "minimum": 1 },
+        "target": { "$ref": "#/$defs/nonEmpty" },
+        "os_family": { "$ref": "#/$defs/nonEmpty" },
+        "distribution": { "type": "string" },
+        "architecture": { "type": "string" },
+        "path_style": { "enum": ["posix", "windows", "android-uri"] },
+        "case_sensitive": { "type": "boolean" },
+        "max_path": {
+          "type": "integer",
+          "minimum": 64,
+          "maximum": 32767
+        },
+        "illegal_characters": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[^\\u0000\\r\\n]*$"
+        },
+        "supports_hardlink": { "type": "boolean" },
+        "supports_hooks": { "type": "boolean" },
+        "default_frontend_id": { "$ref": "#/$defs/id" },
+        "paths": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "config_dir": { "$ref": "#/$defs/devicePath" },
+            "save_dir": { "$ref": "#/$defs/devicePath" },
+            "rom_dir": { "$ref": "#/$defs/devicePath" },
+            "core_dir": { "$ref": "#/$defs/devicePath" },
+            "emulator_dir": { "$ref": "#/$defs/devicePath" }
+          }
+        },
+        "support_level": { "$ref": "#/$defs/supportLevel" },
+        "enabled": { "const": true }
+      }
+    },
+    "devicePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*[\\\\:\\u0000\\r\\n])[^/]+(?:/[^/]+)*$"
+    },
+    "emulatorDriver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "family",
+        "contract_version",
+        "platforms",
+        "targets",
+        "launch",
+        "save",
+        "support_level",
+        "enabled"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/nonEmpty" },
+        "family": { "$ref": "#/$defs/nonEmpty" },
+        "contract_version": { "type": "integer", "minimum": 1 },
+        "platforms": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonEmpty" }
+        },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonEmpty" }
+        },
+        "launch": { "$ref": "#/$defs/driverLaunch" },
+        "save": { "$ref": "#/$defs/driverSave" },
+        "config_paths": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "maxLength": 64,
+            "pattern": "^[A-Za-z0-9._-]+$"
+          },
+          "additionalProperties": { "$ref": "#/$defs/portablePath512" }
+        },
+        "support_level": { "$ref": "#/$defs/supportLevel" },
+        "enabled": { "const": true }
+      }
+    },
+    "portablePath512": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*[\\u0000\\r\\n])[^/]+(?:/[^/]+)*$"
+    },
+    "driverLaunch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["arguments"],
+      "properties": {
+        "requires_core": { "type": "boolean" },
+        "executables": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/stringArray" }
+        },
+        "android_package": { "type": "string" },
+        "android_activity": { "type": "string" },
+        "android_intent": { "$ref": "#/$defs/androidIntent" },
+        "arguments": { "$ref": "#/$defs/arguments" }
+      }
+    },
+    "androidIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["package"],
+      "properties": {
+        "action": { "type": "string", "maxLength": 2048 },
+        "package": { "$ref": "#/$defs/javaPackage" },
+        "package_candidates": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/javaPackage" }
+        },
+        "activity": { "type": "string", "maxLength": 2048 },
+        "data": { "$ref": "#/$defs/safeText" },
+        "mime_type": { "$ref": "#/$defs/safeText" },
+        "categories": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/safeText" }
+        },
+        "string_extras": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[^\\u0000\\r\\n]+$"
+          },
+          "additionalProperties": { "$ref": "#/$defs/safeText" }
+        },
+        "boolean_extras": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "additionalProperties": { "type": "boolean" }
+        },
+        "flags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "grant-read-uri",
+              "grant-write-uri",
+              "new-task",
+              "clear-top"
+            ]
+          }
+        }
+      }
+    },
+    "javaPackage": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_]*)+$"
+    },
+    "driverSave": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "layout", "patterns", "refresh", "portability"],
+      "properties": {
+        "scope": { "$ref": "#/$defs/saveScope" },
+        "layout": { "type": "string" },
+        "patterns": { "$ref": "#/$defs/stringArray" },
+        "scope_by_platform": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/saveScope" }
+        },
+        "layout_by_platform": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "patterns_by_platform": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/stringArray" }
+        },
+        "refresh": { "type": "string" },
+        "portability": { "type": "string" }
+      }
+    },
+    "saveScope": { "enum": ["game", "platform", "container"] },
+    "retroarchCore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "contract_version",
+        "library_names",
+        "platforms",
+        "support_level",
+        "enabled"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/nonEmpty" },
+        "contract_version": { "type": "integer", "minimum": 1 },
+        "library_names": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonEmpty" }
+        },
+        "platforms": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonEmpty" }
+        },
+        "support_level": { "$ref": "#/$defs/supportLevel" },
+        "enabled": { "const": true }
+      }
+    },
+    "packageProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "frontend",
+        "target",
+        "locale",
+        "file_mode",
+        "output_slug",
+        "enabled"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/nonEmpty" },
+        "frontend": { "enum": ["pegasus", "es-de"] },
+        "target": { "$ref": "#/$defs/nonEmpty" },
+        "device_profile_id": { "$ref": "#/$defs/id" },
+        "frontend_adapter_id": { "$ref": "#/$defs/id" },
+        "locale": { "type": "string" },
+        "file_mode": { "enum": ["copy", "hardlink", "reference"] },
+        "output_slug": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "pattern": "^[a-z0-9_-]+$"
+        },
+        "enabled": { "const": true },
+        "templates": {
+          "type": "array",
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/packageTemplate" }
+        }
+      }
+    },
+    "packageTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "scope", "output_path", "body"],
+      "properties": {
+        "name": { "$ref": "#/$defs/nonEmpty" },
+        "scope": { "enum": ["package", "platform", "edition"] },
+        "output_path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "body": { "type": "string", "maxLength": 65536 },
+        "sort_order": { "type": "integer" }
+      }
+    }
+  }
+}

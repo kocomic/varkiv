@@ -1,0 +1,48 @@
+ARG WINE_ROOT_IMAGE=varkiv-windows-acceptance:debian13-wine10-20251229
+ARG WINE_ROOT_PLATFORM=linux/amd64
+FROM --platform=${WINE_ROOT_PLATFORM} ${WINE_ROOT_IMAGE} AS wine-root
+
+FROM debian:13.2-slim@sha256:fbecdc3332360d5b232e8bac4fbf2f1ec51f5e5298993e2287ed9482501486b0
+
+# Acceptance-only ARM64 wrapper for Apple Silicon. Explicit QEMU launchers run
+# the pinned amd64 Wine loader and wineserver without changing Docker Desktop's
+# global Rosetta or binfmt configuration.
+
+ARG DEBIAN_SNAPSHOT=20251229T000000Z
+ARG DEBIAN_SNAPSHOT_HOST=https://snapshot-cloudflare.debian.org
+ARG DEBIAN_FRONTEND=noninteractive
+ARG QEMU_USER_STATIC_VERSION=1:10.0.6+ds-0+deb13u2
+
+RUN printf '%s\n' \
+        "deb [check-valid-until=no] ${DEBIAN_SNAPSHOT_HOST}/archive/debian/${DEBIAN_SNAPSHOT} trixie main" \
+        > /etc/apt/sources.list \
+    && rm -f /etc/apt/sources.list.d/debian.sources \
+    && apt-get -o Acquire::https::Verify-Peer=false -o Acquire::https::Verify-Host=false \
+        -o Acquire::ForceIPv4=true -o Acquire::Languages=none -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::https::Verify-Peer=false -o Acquire::https::Verify-Host=false \
+        -o Acquire::ForceIPv4=true -o Acquire::Languages=none \
+        install --yes --no-install-recommends \
+        qemu-user-static="${QEMU_USER_STATIC_VERSION}" \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=wine-root / /opt/amd64/
+COPY --from=wine-root /usr/lib/x86_64-linux-gnu/ /usr/lib/x86_64-linux-gnu/
+COPY --from=wine-root /usr/lib/wine/ /usr/lib/wine/
+COPY --from=wine-root /usr/share/wine/ /usr/share/wine/
+RUN mv /opt/amd64/usr/lib/wine/wine64 /opt/amd64/usr/lib/wine/wine64-amd64
+COPY scripts/windows-qemu-wine.sh /usr/local/bin/windows-qemu-wine
+COPY scripts/windows-qemu-wineserver.sh /usr/local/bin/windows-qemu-wineserver
+# Wine's amd64 loader starts this Debian dispatcher with execve(2). Keep the
+# exact guest path as a native shell trampoline so the child server remains on
+# explicit QEMU instead of falling back to Docker Desktop's Rosetta handler.
+COPY scripts/windows-qemu-wineserver.sh /opt/amd64/usr/lib/wine/wineserver
+COPY scripts/windows-qemu-wine.sh /opt/amd64/usr/lib/wine/wine64
+
+ENV WINEARCH=win64 \
+    WINEDEBUG=-all \
+    WINELOADERNOEXEC=1 \
+    WINELOADER=/usr/local/bin/windows-qemu-wine \
+    WINESERVER=/usr/local/bin/windows-qemu-wineserver \
+    WINEDLLOVERRIDES=winemenubuilder.exe=d
+
+ENTRYPOINT ["/usr/local/bin/windows-qemu-wine"]

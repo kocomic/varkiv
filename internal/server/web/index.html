@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0a0b0f">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Varkiv — self-hosted game library, package builder, and save sync control plane.">
+  <title>Varkiv · 私人游戏库</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <script src="/theme.js?v=0.1.0-preview.1"></script>
+  <link rel="stylesheet" href="/styles.css?v=0.1.0-preview.1">
+  <link rel="stylesheet" href="/theme.css?v=0.1.0-preview.1">
+</head>
+<body>
+  <svg class="icon-sprite" aria-hidden="true">
+    <symbol id="icon-library" viewBox="0 0 24 24"><path d="M4 4h15l2 3v14H4zM8 4v17M4 10h4M4 15h4"/></symbol>
+    <symbol id="icon-platforms" viewBox="0 0 24 24"><path d="M3 4h8v7H3zM14 4h7v7h-7zM3 14h8v7H3zM14 14h7v7h-7zM8 4 3 9m18-5-5 5M11 14l-6 6m16-6-6 6"/></symbol>
+    <symbol id="icon-sources" viewBox="0 0 24 24"><path d="M12 3v11m0 0 4-4m-4 4-4-4M4 15v5h16v-5"/></symbol>
+    <symbol id="icon-packages" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4v10l-8 4-8-4zM4 7l8 5 8-5M12 12v9"/></symbol>
+    <symbol id="icon-sync" viewBox="0 0 24 24"><path d="M4 8h12l-3-3m3 3-3 3M20 16H8l3 3m-3-3 3-3"/></symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24"><path d="M6 7h12l4 5-3 6-5-3h-4l-5 3-3-6zM6 12h5M8.5 9.5v5M16 11h2M18 13h2"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><path d="M4 4h12v12H4zM15 15l5 5"/></symbol>
+    <symbol id="icon-rebuild" viewBox="0 0 24 24"><path d="M4 8h12l-3-3m3 3-3 3M20 16H8l3 3m-3-3 3-3"/></symbol>
+    <symbol id="icon-audit" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM8 7h8M8 11h5M8 16l2 2 5-5"/></symbol>
+    <symbol id="icon-runtime-source" viewBox="0 0 24 24"><path d="M4 5h16v4H4zM4 11h11v4H4zM4 17h16v3H4zM17 11h3v4h-3z"/></symbol>
+    <symbol id="icon-runtime-frontend" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></symbol>
+    <symbol id="icon-runtime-device" viewBox="0 0 24 24"><path d="M4 7h16l2 4-2 6H4l-2-6zM7 12h4M9 10v4M16 10l3 3m0-3-3 3"/></symbol>
+    <symbol id="icon-runtime-driver" viewBox="0 0 24 24"><path d="m12 3 4 4 5 1v8l-5 1-4 4-4-4-5-1V8l5-1zM9 9h6v6H9z"/></symbol>
+    <symbol id="icon-runtime-core" viewBox="0 0 24 24"><path d="M7 7h10v10H7zM9 2v3m3-3v3m3-3v3M9 19v3m3-3v3m3-3v3M2 9h3m-3 3h3m-3 3h3m14-6h3m-3 3h3m-3 3h3"/></symbol>
+    <symbol id="icon-add" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><path d="m4 12 5 5L20 6"/></symbol>
+    <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-5-5 5 5-5 5"/></symbol>
+    <symbol id="icon-rom" viewBox="0 0 24 24"><path d="M6 3h10l3 3v15H6zM9 8h7M9 12h7M9 16h4"/></symbol>
+    <symbol id="icon-metadata" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5zM8 8h8M8 12h8M8 16h5"/></symbol>
+    <symbol id="icon-pegasus" viewBox="0 0 24 24"><path d="M3 6h18l-7 6h6l-9 7H4l8-7H6z"/></symbol>
+    <symbol id="icon-esde" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM8 8h3v3H8zm6 0h2m-8 6h3v3H8zm6 0h2"/></symbol>
+    <symbol id="icon-neutral" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4v10l-8 4-8-4zM4 7l8 5 8-5M8 16h8"/></symbol>
+    <symbol id="icon-media" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM7 16l4-5 3 3 2-2 3 4M8 8h2"/></symbol>
+    <symbol id="icon-network" viewBox="0 0 24 24"><path d="M5 5h5v5H5zm9 0h5v5h-5zM9 14h6v6H9zM7 10v2h5v2m5-4v2h-5"/></symbol>
+    <symbol id="icon-warning" viewBox="0 0 24 24"><path d="M12 3 22 21H2zM12 9v5m0 3v1"/></symbol>
+    <symbol id="icon-config" viewBox="0 0 24 24"><path d="M5 3h11l3 3v15H5zM8 9h8M8 14h8M10 7v4m4 1v4"/></symbol>
+    <symbol id="icon-info" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM12 10v7m0-10v1"/></symbol>
+    <symbol id="icon-reference" viewBox="0 0 24 24"><path d="M4 5h7v6H4zm9 8h7v6h-7zM11 8h5v5M8 11v5h5"/></symbol>
+    <symbol id="icon-list" viewBox="0 0 24 24"><path d="M4 5h3v3H4zm6 0h10M4 11h3v3H4zm6 0h10M4 17h3v3H4zm6 0h10"/></symbol>
+    <symbol id="icon-grid" viewBox="0 0 24 24"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></symbol>
+    <symbol id="icon-series" viewBox="0 0 24 24"><path d="M4 4h6v6H4zm10 10h6v6h-6zM10 7h5v5m0 0-3-3m3 3-3 3"/></symbol>
+    <symbol id="icon-more" viewBox="0 0 24 24"><path d="M4 11h2v2H4zm7 0h2v2h-2zm7 0h2v2h-2z"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></symbol>
+    <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24"><path d="M12 17V5m0 0L7 10m5-5 5 5M4 15v5h16v-5"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 4v12m0 0 5-5m-5 5-5-5M4 15v5h16v-5"/></symbol>
+    <symbol id="icon-play" viewBox="0 0 24 24"><path d="M7 4l12 8-12 8z"/></symbol>
+    <symbol id="icon-theme-system" viewBox="0 0 24 24"><path d="M3 4h18v13H3zM8 21h8M12 17v4"/></symbol>
+    <symbol id="icon-theme-light" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M19 5l-2 2M7 17l-2 2"/></symbol>
+    <symbol id="icon-theme-dark" viewBox="0 0 24 24"><path d="M20 15.5A8 8 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5z"/></symbol>
+  </svg>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><img src="/assets/varkiv-mark.svg" alt=""></span>
+        <span><strong>VARKIV</strong><small>私人游戏库</small></span>
+      </div>
+      <nav aria-label="主导航">
+        <a class="nav-item active" href="#library" data-view="library-view">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-library"/></svg>
+          <span class="nav-label" data-mobile-label="游戏库">游戏库</span>
+        </a>
+        <a class="nav-item" href="#platforms" data-view="platforms-view">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-platforms"/></svg>
+          <span class="nav-label" data-mobile-label="平台导航">平台目录</span>
+        </a>
+        <a class="nav-item" href="#sources" data-view="sources-view">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-sources"/></svg>
+          <span class="nav-label" data-mobile-label="导入">来源</span>
+        </a>
+        <a class="nav-item" href="#packages" data-view="packages-view">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-packages"/></svg>
+          <span class="nav-label" data-mobile-label="整合包">整合包</span>
+        </a>
+        <a class="nav-item" href="#sync" data-view="devices-view">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-sync"/></svg>
+          <span class="nav-label" data-mobile-label="存档">同步</span>
+        </a>
+        <a class="nav-item" href="#settings" data-view="settings-view">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-settings"/></svg>
+          <span class="nav-label" data-mobile-label="设置导航">设置</span>
+        </a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="core-status"><span></span><div><strong>Varkiv</strong><small>本地服务已连接</small></div></div>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <label class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-search"/></svg>
+          <input id="search" type="search" placeholder="搜索游戏、版本或平台" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
+        <div class="top-actions">
+          <div class="theme-switch" role="group" aria-label="外观模式">
+            <button type="button" data-theme-mode="system" aria-label="跟随系统" title="跟随系统"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-theme-system"/></svg></button>
+            <button type="button" data-theme-mode="light" aria-label="浅色模式" title="浅色模式"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-theme-light"/></svg></button>
+            <button type="button" data-theme-mode="dark" aria-label="深色模式" title="深色模式"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-theme-dark"/></svg></button>
+          </div>
+          <label class="locale-label"><span>界面语言</span><select id="locale" aria-label="界面与游戏名称语言"><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="ja">日本語</option><option value="en">English</option></select></label>
+          <button id="new-game" class="primary"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-add"/></svg>添加游戏</button>
+        </div>
+      </header>
+
+      <main id="workspace-main">
+        <section id="library-view" class="view">
+        <section class="page-head">
+          <div><p class="eyebrow">YOUR COLLECTION</p><h1>游戏库</h1><div class="page-intro-row"><p class="intro">按系列、平台和版本整理个人 ROM。</p><details class="context-disclosure page-context-disclosure"><summary>整理规则</summary><p>系列跨平台聚合；游戏按平台独立；原版、汉化与改版保留各自 ROM 和存档。</p></details></div></div>
+          <div class="stats" aria-label="资料库统计">
+            <div><strong id="series-count">—</strong><span>系列</span></div>
+            <div><strong id="game-count">—</strong><span>游戏</span></div>
+            <div><strong id="edition-count">—</strong><span>版本</span></div>
+            <div><strong id="platform-count">—</strong><span>平台</span></div>
+          </div>
+        </section>
+
+        <section class="library-section">
+          <div class="section-head"><div><h2 id="library-section-title">全部游戏</h2><span id="result-count"></span></div><div class="section-actions"><div class="library-mode" role="group" aria-label="资料库视图"><button class="active" type="button" data-library-mode="list"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-list"/></svg>管理列表</button><button type="button" data-library-mode="covers"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-grid"/></svg>封面墙</button><button type="button" data-library-mode="series"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-series"/></svg>系列层级</button></div><button id="recheck" class="quiet-button">重新检查文件</button></div></div>
+          <div id="notice" role="status" aria-live="polite"></div>
+          <section id="games" class="management-table" aria-live="polite"></section>
+          <section id="series-grid" class="series-grid" aria-live="polite" hidden></section>
+          <section id="empty" class="empty" hidden><div class="empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-add"/></svg></div><h2>资料库还是空的</h2><p>添加游戏，或导入 Pegasus / ES-DE 游戏库。</p><button class="primary empty-new">添加游戏</button></section>
+          <section id="no-results" class="empty" hidden><h2>没有匹配的内容</h2><p>换一个系列名、游戏名、版本或平台试试。</p></section>
+        </section>
+        </section>
+
+        <section id="settings-view" class="view" hidden>
+          <section class="page-head compact-head"><div><p class="eyebrow">SETTINGS</p><h1>设置</h1><div class="page-intro-row"><p class="intro">管理资料库、设备与模拟器策略。</p><details class="context-disclosure page-context-disclosure"><summary>设置范围</summary><p>管理资料库当前采用的存储、安全、设备、模拟器与平台策略。</p></details></div></div></section>
+          <section class="settings-overview" aria-label="当前资料库策略">
+            <article><span class="settings-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-rom"/></svg></span><div><small>ROM 存储</small><strong>引用来源或受管复制</strong><p>逐次选择；不移动来源。</p></div><em>当前策略</em></article>
+            <article><span class="settings-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-media"/></svg></span><div><small>媒体存储</small><strong>内容寻址并去重</strong><p>SHA-256 去重；缩略图可重建。</p></div><em>当前策略</em></article>
+            <article><span class="settings-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-network"/></svg></span><div><small>服务访问</small><strong>本机默认，局域网需令牌</strong><p>短码配对；令牌可单独撤销。</p></div><em>当前策略</em></article>
+          </section>
+          <section id="web-emulator-readiness" class="web-runtime-status" aria-live="polite"><span class="web-runtime-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-play"/></svg></span><div><small>网页模拟器</small><strong id="web-emulator-readiness-title">正在检查资源…</strong></div><span id="web-emulator-readiness-meta"></span><em id="web-emulator-readiness-state">检查中</em></section>
+          <section class="settings-section-head runtime-section-head"><div><p class="eyebrow">RUNTIME CATALOG</p><h2>设备与模拟器</h2><details class="context-disclosure"><summary>范围说明</summary><p>平台、设备、前端、模拟器和 RetroArch 核心分别管理；预设只代表目录能力，不冒充实机验证。</p></details></div><div class="runtime-head-actions"><button id="new-runtime-item" type="button"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-add"/></svg>添加自定义适配</button><div class="runtime-total"><strong id="runtime-total">—</strong><span>声明式适配项</span></div></div></section>
+          <section id="runtime-catalog" class="runtime-catalog" aria-live="polite"></section>
+          <section id="support-readiness" class="support-readiness" aria-labelledby="support-readiness-title">
+            <header><div><p class="eyebrow">SUPPORT READINESS</p><h2 id="support-readiness-title">真实设备支持矩阵</h2><details class="context-disclosure"><summary>证据与隐私</summary><p>汇总已经人工审查并绑定当前契约的证据；不会连接设备，也不会读取 ROM、媒体、存档或来源路径。</p></details></div><span id="support-readiness-state">正在检查证据…</span></header>
+            <div id="support-readiness-grid" class="support-readiness-grid" aria-live="polite"></div>
+            <footer>这里只显示真实设备门禁，不代表名称、许可证或公开发布已经获批。</footer>
+          </section>
+          <section id="hardware-acceptance-review" class="acceptance-review" aria-labelledby="acceptance-title">
+            <header class="acceptance-head"><div><p class="eyebrow">REAL DEVICE EVIDENCE</p><h2 id="acceptance-title">审查真机验收报告</h2><details class="context-disclosure"><summary>报告如何使用</summary><p>导入 Device Agent 在设备本地生成的隐私最小化报告。先核对适配关系和测试场景，再决定是否提升支持等级。</p></details></div><span class="acceptance-local-badge">仅本地审查</span></header>
+            <div class="acceptance-layout">
+              <article class="acceptance-upload">
+                <span class="acceptance-step">01</span>
+                <div><strong>选择验收报告</strong><p>报告只在本地解析，不会保存原文件。</p><details class="context-disclosure"><summary>隐私要求</summary><p>报告不应包含用户名、绝对路径、ROM 名称、存档名或设备标识；原始文件不会被保存。</p></details></div>
+                <label class="acceptance-file-picker"><input id="acceptance-file" type="file" accept="application/json,.json"><span>选择 JSON 报告</span><small id="acceptance-file-name">尚未选择报告</small></label>
+                <div id="acceptance-report-summary" class="acceptance-report-summary" hidden></div>
+              </article>
+              <form id="acceptance-review-form" class="acceptance-mapping">
+                <span class="acceptance-step">02</span>
+                <div class="acceptance-mapping-copy"><strong>确认适配关系</strong><p>只更新支持证据，不更改启动配置。</p><details class="context-disclosure"><summary>更新范围</summary><p>只会提升所选设备、默认前端、模拟器驱动及可选核心的证据等级，不会更改启动参数。</p></details></div>
+                <div class="acceptance-fields">
+                  <label>设备环境<select id="acceptance-device-profile" required disabled><option value="">请先选择报告</option></select></label>
+                  <label>模拟器驱动<select id="acceptance-driver" required disabled><option value="">请先选择报告</option></select></label>
+                  <label id="acceptance-core-field">RetroArch 核心<select id="acceptance-core" disabled><option value="">不关联核心</option></select></label>
+                </div>
+                <button id="preview-acceptance" class="acceptance-preview-button" type="submit" disabled>生成安全预览</button>
+              </form>
+            </div>
+            <article id="acceptance-preview" class="acceptance-preview" hidden aria-live="polite"></article>
+          </section>
+          <section id="managed-storage-maintenance" class="storage-maintenance" aria-labelledby="storage-maintenance-title">
+            <header class="storage-maintenance-head"><div><p class="eyebrow">MANAGED STORAGE</p><h2 id="storage-maintenance-title">受管存储维护</h2><details class="context-disclosure"><summary>清理范围</summary><p>只检查由服务复制的 ROM 与媒体。来源目录、NAS、存档和仍被资料库引用的文件永远不在清理范围内。</p></details></div><span>仅受管副本</span></header>
+            <div class="storage-maintenance-layout">
+              <article class="storage-scan-card">
+                <span class="storage-maintenance-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-audit"/></svg></span>
+                <div><strong>查找未关联文件</strong><p>先预览，再移入可恢复的私有隔离区。</p><details class="context-disclosure"><summary>处理规则</summary><p>先生成签名预览。确认后文件只会移入私有恢复区，不会删除，也不会立即释放磁盘空间。</p></details></div>
+                <button id="preview-storage-cleanup" type="button">生成清理预览</button>
+              </article>
+              <article class="storage-recovery-card">
+                <header><div><strong>恢复记录</strong><small>只显示数量和时间，不公开原文件名</small></div><span id="storage-recovery-count">0</span></header>
+                <div id="storage-recovery-list" class="storage-recovery-list"><p>还没有隔离记录</p></div>
+              </article>
+            </div>
+            <article id="storage-cleanup-preview" class="storage-cleanup-preview" hidden aria-live="polite"></article>
+          </section>
+        </section>
+
+        <section id="platforms-view" class="view" hidden>
+          <section class="page-head compact-head platform-page-head"><div><p class="eyebrow">PLATFORM REGISTRY</p><h1>平台注册表</h1><div class="page-intro-row"><p class="intro">管理平台识别、文件格式与运行建议。</p><details class="context-disclosure page-context-disclosure"><summary>平台会影响什么</summary><p>统一游戏平台、ROM 格式、前端目录和模拟器建议；自定义平台会参与扫描、导出与设备同步。</p></details></div></div><div class="platform-page-summary"><strong id="platform-total">—</strong><span>可用平台</span></div></section>
+          <section class="platform-commandbar"><div class="platform-command-copy"><strong>平台定义</strong><span>比较格式、目录和模拟器建议</span></div><button id="new-custom-platform" type="button"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-add"/></svg>添加自定义平台</button></section>
+          <section class="platform-toolbar"><label class="platform-search"><span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-search"/></svg></span><input id="platform-search" type="search" placeholder="搜索平台、别名或扩展名"></label><div class="platform-filters" role="group" aria-label="平台类型"><button class="active" data-platform-category="all">全部</button><button data-platform-category="console">主机</button><button data-platform-category="handheld">掌机</button><button data-platform-category="arcade">街机</button><button data-platform-category="computer">电脑</button></div></section>
+          <section id="platform-grid" class="platform-grid" aria-live="polite"></section>
+          <section id="platform-empty" class="empty" hidden><h2>没有匹配的平台</h2><p>可以使用自定义平台 slug；预设不会限制你的资料库。</p></section>
+        </section>
+
+        <section id="sources-view" class="view" hidden>
+          <section class="page-head compact-head transfer-head">
+            <div><p class="eyebrow">LIBRARY SOURCES</p><h1>来源</h1><div class="page-intro-row"><p class="intro">先预览，再导入 ROM 或前端元数据。</p><details class="context-disclosure page-context-disclosure"><summary>导入规则</summary><p>扫描 ROM 或读取 Pegasus、ES-DE 元数据；所有变化都在写入资料库前审查。</p></details></div></div>
+            <div class="safety-note"><span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg></span><div><strong>存储策略由你决定</strong><small>保持原位或复制；不移动来源</small></div></div>
+          </section>
+          <section class="source-registry" aria-labelledby="source-registry-title">
+            <header><div><p>已配置来源</p><h2 id="source-registry-title">可重复扫描的游戏目录</h2></div><span id="source-registry-count">0 个来源</span></header>
+            <div id="source-registry-list" class="source-registry-list"><div class="source-registry-empty"><span class="source-registry-mark" aria-hidden="true">SRC</span><span><strong>还没有保存来源</strong><small>在下方选择目录并生成预览，默认会把配置保存在这里。</small></span></div></div>
+          </section>
+          <section id="import-panel" class="transfer-panel">
+            <div class="flow-rail" aria-label="导入步骤"><span class="active"><b>1</b>选择来源</span><i></i><span><b>2</b>审查变化</span><i></i><span><b>3</b>确认导入</span></div>
+            <div class="import-layout">
+              <article class="flow-card import-source-card">
+                <header class="flow-card-head"><div><span class="section-number">01</span><h2>你要导入什么？</h2></div><p>选择 ROM 或前端元数据。</p></header>
+                <form id="import-form" class="tool-form import-form">
+                  <fieldset class="import-kind-choice"><legend>导入方式</legend>
+                    <label class="import-kind-option active"><input type="radio" name="import_kind" value="rom" checked><span class="kind-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-rom"/></svg></span><span><strong>扫描 ROM 文件或目录</strong><small>可直接导入</small></span><i><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg></i></label>
+                    <label class="import-kind-option"><input type="radio" name="import_kind" value="metadata"><span class="kind-icon metadata"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-metadata"/></svg></span><span><strong>读取前端元数据</strong><small>保留名称、版本和媒体</small></span><i><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg></i></label>
+                  </fieldset>
+                  <section id="rom-source-fields" class="import-mode-fields">
+                    <label class="field-label">ROM 文件或目录
+                      <span class="path-input"><span class="path-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-rom"/></svg></span><input name="rom_source" required placeholder="gba / gba/Advance Wars.gba" autocomplete="off"></span>
+                      <small>填写库内路径；NAS 先挂载到 <code>/library</code>。</small>
+                    </label>
+                  </section>
+                  <section id="metadata-source-fields" class="import-mode-fields" hidden>
+                    <fieldset class="source-choice"><legend>前端格式</legend>
+                      <label class="source-option active"><input type="radio" name="format" value="pegasus" checked><span class="source-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-pegasus"/></svg></span><span><strong>Pegasus</strong><small>metadata.pegasus.txt</small></span><i><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg></i></label>
+                      <label class="source-option"><input type="radio" name="format" value="es-de"><span class="source-logo esde"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-esde"/></svg></span><span><strong>ES-DE</strong><small>gamelist.xml</small></span><i><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg></i></label>
+                      <label class="source-option"><input type="radio" name="format" value="varkiv"><span class="source-logo neutral"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-neutral"/></svg></span><span><strong>中性恢复清单</strong><small>library-manifest.json</small></span><i><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg></i></label>
+                    </fieldset>
+                    <section class="detected-block"><div class="detected-head"><span>自动发现</span><small id="detected-count">切换到元数据导入后扫描</small></div><div id="detected-sources" class="detected-sources"><div class="detected-empty">选择元数据导入后，这里会查找 Pegasus、ES-DE 与中性恢复清单。</div></div></section>
+                    <label class="field-label">元数据文件
+                      <span class="path-input"><span id="source-file-icon" class="path-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-metadata"/></svg></span><input name="source" placeholder="gba/metadata.pegasus.txt" autocomplete="off"></span>
+                      <small>填写库内相对路径，例如 <code id="source-example">gba/metadata.pegasus.txt</code></small>
+                    </label>
+					<label id="content-root-field" class="field-label">ROM 内容目录（可选）
+					  <span class="path-input"><span class="path-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-rom"/></svg></span><input name="content_root" placeholder="roms/gba" autocomplete="off"></span>
+					  <small>元数据与 ROM 分开时填写；留空则使用元数据目录。</small>
+					</label>
+					<label id="runtime-source-field" class="field-label" hidden>ES-DE 运行配置（可选）
+					  <span class="path-input"><span class="path-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-config"/></svg></span><input name="runtime_source" placeholder="custom_systems/es_systems.xml" autocomplete="off" disabled></span>
+					  <small>只读取指定文件；启动命令仅作待审核建议。</small>
+					</label>
+                    <p class="missing-policy"><span class="policy-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-warning"/></svg></span><span><strong>缺失 ROM 会跳过</strong><small>ROM 到位后可重新扫描。</small></span></p>
+                  </section>
+                  <div class="two">
+                    <label id="import-platform-field">游戏平台<select id="import-platform-preset" required><option value="">正在加载平台预设…</option></select><input id="import-platform-custom" name="platform" placeholder="自定义平台 slug" hidden><small id="import-platform-help">选择平台后显示兼容格式和运行方式</small></label>
+                    <label id="metadata-locale-field" hidden>元数据标题语言<select name="locale" disabled><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="ja">日本語</option><option value="en">English</option><option value="">未知 / 保持默认</option></select></label>
+                  </div>
+                  <fieldset id="remember-source-field" class="remember-source"><label><input name="remember_source" type="checkbox" checked><span><strong>保存为可重复扫描的来源</strong><small>只保存扫描配置，不改源文件。</small></span></label><details class="source-settings-disclosure"><summary><span><strong>来源命名与解析器</strong><small>可选设置</small></span><i aria-hidden="true"></i></summary><div><label id="source-name-field">来源名称<input name="source_name" placeholder="留空则使用平台和目录名称"><small>例如：客厅 NAS · GBA</small></label><label id="source-adapter-field">来源适配器<select name="source_adapter_id"></select><small>只显示匹配的安全解析器。</small></label></div></details></fieldset>
+                  <fieldset class="storage-policy"><legend>导入后的文件放在哪里？</legend>
+                    <div class="two">
+                      <label>ROM 存储<select name="rom_storage"><option value="reference">保持原位 · 推荐已有整合包</option><option value="copy">复制到受管 ROM 区</option></select><small id="rom-storage-help">零额外占用；NAS 路径离线时会显示缺失。</small></label>
+                      <label id="media-storage-field" hidden>封面与媒体<select name="media_storage" disabled><option value="copy">复制并按内容去重 · 推荐</option><option value="reference">保持原位</option><option value="ignore">此次不导入媒体</option></select><small id="media-storage-help">保存到 state/media；相同内容只存一份。</small></label>
+                    </div>
+                    <div id="storage-plan" class="storage-plan"><span>ROM</span><strong>引用现有文件</strong><i><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow"/></svg></i><span>媒体</span><strong>受管去重存储</strong></div>
+                  </fieldset>
+                  <div id="import-inline-state" class="inline-state" aria-live="polite"></div>
+                  <footer class="import-form-actions"><p class="action-footnote"><span></span> 只读预览，不写入。</p><button id="preview-import" class="primary action-button" type="submit"><span>扫描 ROM 并生成预览</span><b aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-arrow"/></svg></b></button></footer>
+                </form>
+              </article>
+
+              <article class="flow-card review-card">
+                <header class="flow-card-head review-head"><div><span class="section-number">02</span><h2>审查即将发生的变化</h2></div><p>只导入勾选项。</p></header>
+                <div id="import-empty" class="review-empty"><div class="review-illustration"><span></span><span></span><span></span></div><h3>等待生成预览</h3><p>检查文件与指纹后，会标出可导入、缺失、重复和冲突项。</p></div>
+                <div id="import-review" hidden>
+                  <div id="import-summary" class="import-summary"></div>
+                  <section id="import-source-diagnostics" class="source-diagnostic-notice" hidden aria-live="polite"></section>
+                  <section id="import-source-state" class="source-persistence-notice" hidden aria-live="polite"></section>
+                  <section id="import-platform-changes" class="portable-platform-notice" hidden aria-live="polite"></section>
+                  <section id="import-runtime-changes" class="portable-platform-notice" hidden aria-live="polite"></section>
+                  <div class="review-toolbar"><label><input id="select-importable" type="checkbox" checked> 选择全部可导入项</label><span id="selection-count">已选择 0 项</span></div>
+                  <div id="import-preview" class="preview-list"></div>
+                  <footer class="review-actions"><div><strong id="commit-summary">准备导入</strong><small id="commit-note">重复和冲突项不会提交</small></div><button id="commit-import" class="primary" type="button"><span>导入已选择的条目</span><b><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow"/></svg></b></button></footer>
+                </div>
+              </article>
+            </div>
+          </section>
+          <section class="identity-exchange" aria-labelledby="identity-exchange-title">
+            <header class="identity-exchange-head"><div><p class="eyebrow">IDENTITY EXCHANGE</p><h2 id="identity-exchange-title">ROM 识别库</h2><span>交换哈希与版本资料，不交换 ROM。</span></div><div id="hash-source-total"><strong>0</strong><small>已安装来源</small></div></header>
+            <div id="hash-source-list" class="hash-source-list"><p>还没有导入识别数据。</p></div>
+            <div class="identity-exchange-grid">
+              <article class="hash-pack-panel hash-pack-import">
+                <header><span class="identity-action-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-upload"/></svg></span><div><strong>导入识别包</strong><small>先检查来源、发布版本与冲突</small></div></header>
+                <label class="hash-pack-picker" for="hash-pack-file"><input id="hash-pack-file" type="file" accept=".hashpack,application/zip,application/vnd.varkiv.hashpack+zip"><span>选择 .hashpack</span><small id="hash-pack-file-name">尚未选择文件</small></label>
+                <button id="preview-hash-pack" type="button">检查识别包</button>
+                <div id="hash-pack-preview" class="hash-pack-preview" hidden aria-live="polite"></div>
+              </article>
+              <article class="hash-pack-panel hash-pack-export">
+                <header><span class="identity-action-icon violet"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-download"/></svg></span><div><strong>导出分享包</strong><small>仅导出可用 ROM 的身份资料</small></div></header>
+                <form id="hash-pack-export-form">
+                  <div class="two"><label>来源标识<input name="source_id" required pattern="[a-z0-9](?:[a-z0-9._]|-){0,127}" placeholder="personal.library"></label><label>发布版本<input name="release" required placeholder="2026.09"></label></div>
+                  <div class="two"><label>数据集名称<input name="name" required placeholder="我的掌机识别库"></label><label>发布者<input name="publisher" placeholder="可选"></label></div>
+                  <label>元数据许可<input name="license" required value="CC0-1.0" placeholder="例如 CC0-1.0"></label>
+                  <details class="context-disclosure hash-privacy"><summary>分享边界</summary><p>包含 SHA-256、大小、平台、版本和多语言名称；不包含 ROM、文件路径、文件名、媒体、存档、设备或游玩记录。</p></details>
+                  <button id="export-hash-pack" class="primary" type="submit"><span>生成并下载识别包</span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-download"/></svg></button>
+                </form>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <section id="packages-view" class="view" hidden>
+          <section class="page-head compact-head transfer-head package-head">
+            <div><p class="eyebrow">DEVICE PACKAGES</p><h1>整合包</h1><div class="page-intro-row"><p class="intro">生成适合目标设备与前端的游戏目录。</p><details class="context-disclosure page-context-disclosure"><summary>构建内容</summary><p>为掌机生成 Pegasus 或 ES-DE 目录；计划、文件策略和缺失项在构建前后都有明确反馈。</p></details></div></div>
+            <div class="safety-note"><span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-rebuild"/></svg></span><div><strong>可以安全重复生成</strong><small>只更新受管文件，不清理目标目录中的额外内容</small></div></div>
+          </section>
+          <section id="package-panel" class="transfer-panel">
+            <div class="flow-rail package-rail" aria-label="整合包步骤"><span class="active"><b>1</b>选择设备</span><i></i><span><b>2</b>确认策略</span><i></i><span><b>3</b>生成目录</span></div>
+            <div class="package-layout">
+              <article class="flow-card profile-card">
+                <header class="flow-card-head"><div><span class="section-number">01</span><h2>要把游戏带到哪里？</h2></div><p>先选设备，下一步设置前端。</p></header>
+                <div id="profile-grid" class="profile-grid" role="radiogroup" aria-label="设备预设"></div>
+              </article>
+              <article class="flow-card build-card">
+                <header class="flow-card-head"><div><span class="section-number">02</span><h2>选择前端与策略</h2></div><p>每台设备可独立选择前端。</p></header>
+                <form id="package-form" class="tool-form package-form">
+                  <select id="package-profile" hidden aria-label="设备预设"></select>
+                  <fieldset class="frontend-choice"><legend>前端格式</legend><label class="frontend-option active"><input type="radio" name="package-frontend" value="es-de" checked><span class="source-logo esde"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-esde"/></svg></span><span><strong>ES-DE</strong><small>gamelist.xml</small></span><i><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg></i></label><label class="frontend-option"><input type="radio" name="package-frontend" value="pegasus"><span class="source-logo"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-pegasus"/></svg></span><span><strong>Pegasus</strong><small>metadata.pegasus.txt · 支持 Android</small></span><i><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg></i></label></fieldset>
+                  <div id="profile-summary" class="build-summary"></div>
+                  <div id="reference-mode-note" class="reference-mode-note" hidden><span aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#icon-reference"/></svg></span><div><strong>只生成元数据，不复制内容</strong><small>目标设备需已有相同相对布局；不会写入服务器路径。</small></div></div>
+                  <div class="two"><label>游戏名称语言<select id="package-locale"><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="ja">日本語</option><option value="en">English</option></select></label><label>ROM 放置方式<select id="package-mode"><option value="copy">复制文件 · 最便携</option><option value="hardlink">硬链接 · 节省本机空间</option><option value="reference">仅生成相对路径元数据 · 不复制内容</option></select></label></div>
+                  <details class="template-editor"><summary><span><strong>配置模板</strong><small>复制后再定制；不执行脚本</small></span><b id="template-count">0 个模板</b></summary><div class="template-editor-body"><div class="template-safety"><span><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg></span><p>仅支持白名单变量；只能输出整合包内的配置文件。</p></div><section class="template-catalog" aria-labelledby="template-catalog-title"><header><span><strong id="template-catalog-title">内置模板</strong><small>匹配当前设备和前端</small></span><b>只读</b></header><div id="template-preset-list" class="template-preset-list"></div></section><div class="template-draft-head"><strong>已复制并可编辑</strong><small>构建前会再次验证</small></div><div id="package-template-list" class="package-template-list"></div><button id="add-package-template" type="button" class="template-add"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-add"/></svg>从空白开始</button><code class="template-variables">{{profile.target}} · {{platform.id}} · {{edition.id}} · {{rom.path}} · {{core.library}} · {{device.config_dir}} · {{driver.id}} · {{launch.arguments_json}}</code></div></details>
+                  <div class="destination"><span>输出到</span><code id="package-destination">state/exports/…</code><small>再次生成只更新有变化的文件</small></div>
+                  <div id="package-inline-state" class="inline-state" aria-live="polite"></div>
+                  <button id="build-package" class="primary action-button" type="submit"><span>预览构建计划</span><b><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow"/></svg></b></button>
+                  <button id="confirm-package-build" class="primary action-button confirm-build" type="button" hidden><span>确认并生成整合包</span><b><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg></b></button>
+                  <p class="action-footnote"><span></span> 不清理额外文件；不打包 BIOS、密钥或模拟器。</p>
+                </form>
+                <div id="package-result" class="result-box" hidden></div>
+              </article>
+            </div>
+          </section>
+        </section>
+
+        <section id="devices-view" class="view" hidden>
+          <section class="page-head compact-head"><div><p class="eyebrow">AUTOMATIC SAVE SYNC</p><h1>存档同步</h1><div class="page-intro-row"><p class="intro">设备客户端自动识别 ROM 并同步对应存档。</p><details class="context-disclosure page-context-disclosure"><summary>工作方式</summary><p>客户端识别本机 ROM 与模拟器，自动把存档归入对应的游戏版本；网页只负责查看状态、冲突和恢复历史。</p></details></div></div></section>
+          <section id="sync-overview" class="sync-overview" aria-label="同步概况"></section>
+          <section class="sync-layout">
+            <article class="sync-agent-card">
+              <header class="sync-agent-head"><span class="section-number">01</span><div class="sync-agent-copy"><p>设备客户端</p><h2>由客户端自动完成</h2></div></header>
+              <details class="sync-process-disclosure"><summary><span>自动流程</span><b>3 步</b></summary><ol class="sync-steps"><li><span>1</span><div><strong>使用短码配对</strong><small>访问令牌只显示一次，并以 0600 权限保存在设备本机</small></div></li><li><span>2</span><div><strong>识别 ROM 与模拟器</strong><small>SHA-256 优先，序列号、产品码与 Title ID 作为补充</small></div></li><li><span>3</span><div><strong>后台增量同步</strong><small>多文件存档原子提交；并发修改会保留双方并提示冲突</small></div></li></ol></details>
+              <div class="agent-pairing"><label>设备预设<select id="pair-device-profile" aria-label="设备预设"></select></label><button id="issue-pairing-code" type="button" class="primary">生成配对码</button><div id="pairing-code-result" class="pairing-code-result" hidden></div></div>
+              <div class="agent-boundary"><span>网页不会要求你手工上传存档</span></div>
+            </article>
+            <article class="sync-panel device-panel">
+              <header><span class="section-number">02</span><div><p>设备</p><h2>已配对客户端</h2></div><span id="device-count-label" class="sync-panel-count">0 台</span></header>
+              <div id="device-list" class="device-list"></div>
+              <div class="session-head"><strong>最近同步</strong></div>
+              <div id="sync-session-list" class="sync-session-list"></div>
+            </article>
+          </section>
+          <article class="sync-panel inventory-match-panel">
+            <header><span class="section-number">03</span><div><p>ROM 识别</p><h2>需要确认的游戏版本</h2></div><span id="inventory-match-count" class="sync-panel-count">0 项</span></header>
+            <details class="context-disclosure inventory-match-disclosure"><summary>匹配规则</summary><p>只有序列号、产品码或 Title ID 同时对应多个版本时才会出现在这里。服务器不会显示设备上的 ROM 文件名、路径或哈希。</p></details>
+            <div id="inventory-match-list" class="inventory-match-list"></div>
+          </article>
+          <article class="sync-panel coverage-panel">
+            <header><span class="section-number">04</span><div><p>关联关系</p><h2>游戏版本与存档覆盖</h2></div></header>
+            <div id="sync-coverage" class="sync-coverage"></div>
+          </article>
+          <article class="sync-panel history-card">
+            <header><span class="section-number">05</span><div><p>恢复</p><h2>存档版本历史</h2></div></header>
+            <div id="save-history" class="history-list"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <dialog id="game-detail-dialog" class="game-detail-dialog">
+    <article><button type="button" class="icon-button detail-close" data-close aria-label="关闭"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button><div id="game-detail-content"></div></article>
+  </dialog>
+
+  <dialog id="web-player-dialog" class="web-player-dialog">
+    <article>
+      <header><div><p>网页模拟器</p><h2 id="web-player-title">浏览器运行</h2></div><div class="web-player-head-actions"><span id="web-player-runtime-state" data-state="idle">等待启动</span><button type="button" class="icon-button" data-close-player aria-label="关闭"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div></header>
+      <div class="web-player-boundary"><strong>当前游戏版本</strong><span>短时授权只允许读取这一个已验证 ROM；不会暴露资料库路径。</span></div>
+	  <div id="web-player-netplay" class="web-player-netplay" hidden><span><i></i><b id="web-player-netplay-state">正在建立房间</b></span><code id="web-player-invite-code" hidden></code><button id="copy-web-player-invite" type="button" hidden>复制邀请口令</button></div>
+      <div class="web-player-input-bar">
+        <span id="web-player-input-state" data-state="detecting" role="status" aria-live="polite"><i></i><b>正在检测手柄</b></span>
+        <details class="web-player-key-guide">
+          <summary>按键说明</summary>
+          <div class="web-player-key-panel">
+            <section><strong>键盘默认键位</strong><div class="key-map"><span><kbd>↑ ↓ ← →</kbd>方向</span><span><kbd>Z</kbd>A</span><span><kbd>X</kbd>B</span><span><kbd>A</kbd>X</span><span><kbd>S</kbd>Y</span><span><kbd>Q</kbd>L</span><span><kbd>E</kbd>R</span><span><kbd>Enter</kbd>开始</span><span><kbd>V</kbd>选择</span></div></section>
+            <section><strong>手柄与触屏</strong><p>连接手柄后按任意键激活。不同手柄的物理布局可能不同，请在模拟器工具栏的控制设置中确认或修改映射。</p><p>触屏设备会按平台显示虚拟控制器。</p></section>
+          </div>
+        </details>
+      </div>
+      <div class="web-player-frame"><iframe id="web-player-frame" title="网页模拟器" allow="autoplay; fullscreen; gamepad"></iframe></div>
+      <footer><small>核心生成持久存档时会自动同步；未生成时不会创建空存档。</small><button type="button" data-close-player>退出运行</button></footer>
+    </article>
+  </dialog>
+
+  <dialog id="web-netplay-dialog" class="web-netplay-dialog">
+	<form id="web-netplay-form">
+	  <header><div><p>EXPERIMENTAL NETPLAY</p><h2>网页联机</h2></div><button type="button" class="icon-button" data-close-netplay aria-label="关闭"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></header>
+	  <div class="web-netplay-edition"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-network"/></svg><span><small>当前游戏版本</small><strong id="web-netplay-edition-title">—</strong></span><em>NES · WebRTC</em></div>
+	  <fieldset class="web-netplay-mode"><legend>进入方式</legend><label><input type="radio" name="mode" value="host" checked><span><strong>创建房间</strong><small>生成一次性邀请口令</small></span></label><label><input type="radio" name="mode" value="guest"><span><strong>加入房间</strong><small>验证口令与本地 ROM</small></span></label></fieldset>
+	  <label class="web-netplay-name">玩家名称<input name="display_name" maxlength="20" autocomplete="nickname" required value="玩家"></label>
+	  <label id="web-netplay-invite-field" class="web-netplay-invite" hidden>邀请口令<input name="invite_code" inputmode="text" autocomplete="off" spellcheck="false" placeholder="粘贴房主提供的邀请口令"></label>
+	  <p class="web-netplay-boundary"><strong>实验范围</strong><span>双方必须持有完全相同的 NES ROM。联机由房主运行并通过 WebRTC 传输画面与操作；本次会话不会写入持久存档。</span></p>
+	  <footer><button type="button" data-close-netplay>取消</button><button type="submit" class="primary"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-network"/></svg><span>创建并运行</span></button></footer>
+	</form>
+  </dialog>
+
+  <dialog id="series-dialog" class="series-dialog">
+    <form id="series-form">
+      <div class="dialog-head"><div><p id="series-dialog-kicker">NEW SERIES</p><h2 id="series-dialog-title">建立跨平台系列</h2></div><button type="button" class="icon-button" data-close aria-label="关闭"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
+      <p class="series-boundary"><span>Series</span> 只改变浏览和排序，不移动 ROM，不合并游戏，也不共享存档。</p>
+      <label>系列默认名称<input name="default_title" required placeholder="The Legend of Zelda"></label>
+      <label>简介<textarea name="description" rows="2" placeholder="可选：系列范围、收录规则或个人备注"></textarea></label>
+      <fieldset><legend>多语言系列名称</legend><div class="two"><label>简体中文<input name="s-zh-CN" placeholder="塞尔达传说"></label><label>繁體中文<input name="s-zh-TW"></label></div><div class="two"><label>日文<input name="s-ja"></label><label>英文<input name="s-en"></label></div></fieldset>
+      <section class="series-member-panel"><header><div><strong>系列中的游戏</strong><small>同一系列可以包含不同平台；每个游戏仍然独立</small></div><span id="series-member-count">0 项</span></header><div id="series-member-editor" class="series-member-editor"></div></section>
+      <section id="series-manage" class="manage-panel" hidden><div><button type="button" id="delete-series" class="danger-button">删除系列分组</button></div><small>只删除系列及成员关系，游戏、版本、ROM、媒体和存档不会被删除。</small></section>
+      <footer><button type="button" data-close>取消</button><button type="submit" class="primary">保存系列</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="game-dialog">
+    <form id="game-form">
+      <div class="dialog-head"><div><p id="game-dialog-kicker">NEW GAME</p><h2 id="game-dialog-title">添加游戏</h2></div><button type="button" class="icon-button" data-close aria-label="关闭"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
+      <label>默认名称<input name="default_title" required placeholder="Final Fantasy VI"></label>
+      <label>游戏平台<select id="game-platform-preset" required><option value="">正在加载平台预设…</option></select><input id="game-platform-custom" name="platform" placeholder="自定义平台 slug" hidden><small id="game-platform-help">预设包含前端目录、文件格式和运行边界</small></label>
+      <fieldset><legend>多语言名称</legend><div class="two"><label>简体中文<input name="zh-CN" placeholder="最终幻想 VI"></label><label>繁體中文<input name="zh-TW"></label></div><div class="two"><label>日文<input name="ja"></label><label>英文<input name="en"></label></div></fieldset>
+      <section id="game-media-panel" class="edition-media-panel" hidden><header><div><strong>共享游戏媒体</strong><small>所有版本共用；相同内容只保存一份，版本媒体可单独覆盖</small></div><button type="button" class="recheck-media" data-media-scope="game">重新检查媒体</button></header><div id="game-media" class="edition-media"></div><div class="media-add"><select id="game-media-kind"><option value="cover">封面</option><option value="box_front">盒装正面</option><option value="box_back">盒装背面</option><option value="box_spine">盒装侧脊</option><option value="logo">Logo</option><option value="screenshot">截图</option><option value="title_screen">标题画面</option><option value="background">背景</option><option value="fanart">同人画</option><option value="marquee">Marquee</option><option value="bezel">装饰边框</option><option value="manual">手册</option><option value="video">视频</option><option value="music">音乐</option><option value="cartridge">卡带</option><option value="poster">海报</option><option value="banner">横幅</option><option value="tile">磁贴</option><option value="other">其他</option></select><label class="media-file-picker" for="game-media-file"><strong>选择文件</strong><small id="game-media-file-name">未选择文件</small></label><input id="game-media-file" class="media-file-input" type="file" accept="image/*,audio/*,video/*,application/pdf"><button type="button" id="upload-game-media">上传游戏媒体</button></div></section>
+      <section id="game-manage" class="manage-panel" hidden><label>合并重复游戏<select id="merge-source"></select><small>所选游戏的版本会移动到当前游戏，ROM 文件不会变动。</small></label><div><button type="button" id="merge-game">预览合并</button><button type="button" id="delete-game" class="danger-button">删除资料条目</button></div></section>
+      <footer><button type="button" data-close>取消</button><button type="submit" class="primary">保存游戏</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="merge-dialog" class="merge-dialog">
+    <article>
+      <header class="merge-head"><div><p>MERGE REVIEW</p><h2>确认游戏合并</h2></div><button type="button" class="icon-button" data-close aria-label="关闭"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></header>
+      <div class="merge-route" aria-label="合并方向"><section><small>来源游戏</small><strong id="merge-preview-source">—</strong></section><span><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow"/></svg></span><section class="target"><small>保留的游戏</small><strong id="merge-preview-target">—</strong></section></div>
+      <div class="merge-stats"><div><strong id="merge-preview-editions">0 → 0</strong><span>合并后的版本</span></div><div><strong id="merge-preview-files">0</strong><span>关联 ROM</span></div><div><strong id="merge-preview-media">0</strong><span>媒体关系</span></div><div><strong id="merge-preview-names">0</strong><span>新增名称</span></div></div>
+      <ul class="merge-invariants"><li><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg><span>ROM 文件与媒体内容不会移动</span></li><li><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"/></svg><span>版本 ID 与存档空间保持不变</span></li><li><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>来源游戏资料会被移除；同名语言保留当前游戏名称</span></li></ul>
+      <p class="merge-stale-note">提交前会再次核对版本、ROM、媒体、名称与系列；有变化时整次合并取消。</p>
+      <footer><button type="button" data-close>返回</button><button type="button" id="commit-game-merge" class="primary">确认合并</button></footer>
+    </article>
+  </dialog>
+
+  <dialog id="edition-dialog">
+    <form id="edition-form"><input type="hidden" name="game_id">
+      <div class="dialog-head"><div><p id="edition-dialog-kicker">NEW EDITION</p><h2 id="edition-dialog-title">添加独立版本</h2></div><button type="button" class="icon-button" data-close aria-label="关闭"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
+      <label>版本名称<input name="default_title" required placeholder="中文汉化版"></label>
+      <div class="two"><label>类型<select name="edition_type"><option value="original">原版</option><option value="translation">汉化 / 翻译</option><option value="hack">改版</option><option value="revision">修订版</option><option value="homebrew">自制</option><option value="other">其他</option></select></label><label>版本号<input name="version" placeholder="1.2"></label></div>
+      <fieldset class="language-choice"><legend>版本包含的语言</legend><div><label><input type="checkbox" name="languages" value="zh-CN">简体中文</label><label><input type="checkbox" name="languages" value="zh-TW">繁體中文</label><label><input type="checkbox" name="languages" value="ja">日本語</label><label><input type="checkbox" name="languages" value="en">English</label></div></fieldset>
+      <label>作者 / 汉化组<input name="author"></label>
+      <fieldset><legend>多语言版本名称</legend><div class="two"><label>简体中文<input name="e-zh-CN"></label><label>繁體中文<input name="e-zh-TW"></label></div><div class="two"><label>日文<input name="e-ja"></label><label>英文<input name="e-en"></label></div></fieldset>
+      <label id="artifact-field">资料库内文件路径<input name="artifact_path" placeholder="snes/Final Fantasy VI (Chinese).sfc"><small>相对于 library 目录；填写时文件必须存在并能计算指纹，留空可先创建纯资料版本。</small></label>
+      <section id="edition-manage" class="manage-panel" hidden>
+        <div id="edition-files" class="artifact-list"></div>
+        <div class="artifact-add"><input id="artifact-path" placeholder="添加 ROM、光盘或目录路径"><select id="artifact-role"><option value="rom">ROM</option><option value="disc">光盘</option><option value="executable">可执行文件</option><option value="patch">补丁</option><option value="dlc">DLC</option><option value="update">更新</option><option value="other">其他</option></select><input id="artifact-disc" type="number" min="0" placeholder="碟号"><button type="button" id="add-artifact">添加文件</button></div>
+        <section class="edition-media-panel"><header><div><strong>版本媒体</strong><small>上传原件会进入 SHA-256 去重存储</small></div><button type="button" class="recheck-media" data-media-scope="edition">重新检查媒体</button></header><div id="edition-media" class="edition-media"></div><div class="media-add"><select id="media-kind"><option value="cover">封面</option><option value="box_front">盒装正面</option><option value="box_back">盒装背面</option><option value="box_spine">盒装侧脊</option><option value="logo">Logo</option><option value="screenshot">截图</option><option value="title_screen">标题画面</option><option value="background">背景</option><option value="fanart">同人画</option><option value="marquee">Marquee</option><option value="bezel">装饰边框</option><option value="manual">手册</option><option value="video">视频</option><option value="music">音乐</option><option value="cartridge">卡带</option><option value="poster">海报</option><option value="banner">横幅</option><option value="tile">磁贴</option><option value="other">其他</option></select><label class="media-file-picker" for="media-file"><strong>选择文件</strong><small id="media-file-name">未选择文件</small></label><input id="media-file" class="media-file-input" type="file" accept="image/*,audio/*,video/*,application/pdf"><button type="button" id="upload-media">上传媒体</button></div></section>
+        <section class="edition-launch-panel">
+          <header><div><strong>模拟器启动绑定</strong><small>按设备选择模拟器与 RetroArch 核心；只生成参数，不在服务器执行</small></div><span id="launch-binding-state">未配置</span></header>
+          <div id="runtime-import-hints" class="runtime-import-hints" hidden></div>
+          <div class="launch-binding-grid"><label>目标设备<select id="launch-device"></select></label><label>模拟器驱动<select id="launch-driver"></select></label><label>RetroArch 核心<select id="launch-core"><option value="">使用分层默认映射</option></select></label></div>
+          <details><summary>自定义启动参数</summary><label>每行一个参数<textarea id="launch-arguments" rows="4" placeholder="-L&#10;{{core.library}}&#10;{{rom.path}}"></textarea><small>参数以 argv 数组保存；不执行 shell、环境变量、条件或函数。</small></label></details>
+          <div id="launch-preview" class="launch-preview" hidden></div>
+          <div id="runtime-hint-batch-preview" class="runtime-hint-batch-preview" hidden></div>
+          <footer><button type="button" id="apply-runtime-hint" hidden>审核后应用导入建议</button><button type="button" id="preview-runtime-hint-batch" hidden>批量审核同类建议</button><button type="button" id="preview-launch-binding">保存并预览解析</button><button type="button" id="delete-launch-binding" class="danger-button" hidden>移除绑定</button><button type="button" id="save-launch-binding" class="primary">保存绑定</button></footer>
+        </section>
+        <section class="edition-save-panel"><header><div><strong>自动存档绑定</strong><small>把这个版本在指定设备与模拟器中的本地存档，关联到一个可恢复的存档流</small></div><span id="save-binding-state">未配置</span></header><div class="save-binding-grid"><label>目标设备<select id="save-device"></select></label><label>模拟器驱动<select id="save-driver"></select></label><label id="save-core-field" hidden>RetroArch 核心<select id="save-core"></select></label><label>存档作用域<select id="save-owner-type"><option value="edition">当前版本</option><option value="platform">整个平台</option><option value="container">共享容器或记忆卡</option></select></label></div><label id="save-owner-key-field" hidden>共享容器标识<input id="save-owner-key" placeholder="例如：pcsx2-memory-card-slot-1"><small>同一个容器标识可关联多个版本；不要填写本机路径。</small></label><label>设备内存档路径模板<textarea id="save-local-paths" rows="3" placeholder="{{device.save_dir}}/{{rom.stem}}.srm"></textarea><small>每行一个文件或目录模板。只能使用已列出的设备、平台、版本与驱动变量；Agent 只会在显式授权根内解析。</small></label><div id="save-binding-summary" class="save-binding-summary" hidden></div><footer><button type="button" id="delete-save-binding" class="danger-button" hidden>移除自动同步绑定</button><button type="button" id="save-save-binding" class="primary">保存自动同步绑定</button></footer></section>
+        <label>移动到游戏<select id="move-target"></select><small>只允许移动到同一游戏平台，版本 ID 和存档空间保持不变。</small></label><div><button type="button" id="move-edition">移动版本</button><button type="button" id="primary-edition">设为主版本</button><button type="button" id="delete-edition" class="danger-button">删除资料条目</button></div>
+      </section>
+      <footer><button type="button" data-close>取消</button><button type="submit" class="primary">添加版本</button></footer>
+    </form>
+  </dialog>
+  <dialog id="auth-dialog">
+    <form id="auth-form">
+      <div class="dialog-head"><div><p>SECURE CONNECTION</p><h2>连接资料库</h2></div></div>
+      <p class="dialog-copy">此服务启用了多设备访问保护。请输入启动服务时设置的访问令牌；令牌只保存在当前标签页。</p>
+      <label>访问令牌<input name="token" type="password" required autocomplete="current-password" placeholder="GAME_LIBRARY_TOKEN"></label>
+      <footer><button type="submit" class="primary">连接</button></footer>
+    </form>
+  </dialog>
+  <dialog id="platform-editor-dialog" class="platform-editor-dialog">
+    <form id="platform-editor-form">
+      <div class="dialog-head"><div><p>CUSTOM PLATFORM</p><h2 id="platform-editor-title">添加自定义平台</h2></div><button type="button" class="icon-button" data-close aria-label="关闭"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
+      <details class="context-disclosure editor-disclosure"><summary>这项配置会影响什么</summary><p>平台配置会直接影响 ROM 扫描、ES-DE 目录和设备端文件识别。这里只保存声明，不读取 ROM，也不安装模拟器。</p></details>
+      <div class="two"><label>平台标识<input name="id" required maxlength="64" pattern="[a-z0-9][a-z0-9._\-]{0,63}" placeholder="custom-handheld"><small>创建后不可修改；只使用小写字母、数字、点、横线或下划线。</small></label><label>分类<select name="category"><option value="handheld">便携掌机</option><option value="console">家用主机</option><option value="arcade">街机系统</option><option value="computer">电脑平台</option></select></label></div>
+      <div class="two"><label>显示名称<input name="name" required maxlength="120" placeholder="Custom Handheld"></label><label>中文名称<input name="name_zh" maxlength="120" placeholder="自定义掌机"></label></div>
+      <label>厂商或生态<input name="vendor" maxlength="120" placeholder="Community"></label>
+      <div class="two"><label>平台别名<input name="aliases" placeholder="custom-handheld, handheld-custom"><small>导入和设备清单中的这些名称都会归一到平台标识。</small></label><label>ES-DE 系统目录<input name="esde_systems" placeholder="custom-handheld"><small>导出时使用第一个目录名，其余名称用于识别导入来源。</small></label></div>
+      <label>ROM 格式<input name="extensions" required placeholder=".opk, .zip, directory"><small>逗号分隔；后缀必须以点开头。目录型游戏请填写 directory。</small></label>
+      <div class="two"><label>BIOS 要求<select name="bios"><option value="none">无需 BIOS</option><option value="optional">BIOS 可选</option><option value="required">需要 BIOS</option><option value="varies">依具体游戏而定</option></select></label><label>运行环境<select name="runtime"><option value="native">需要本机模拟器</option><option value="web">生态中有 Web 模拟器</option><option value="web_experimental">Web 模拟器生态支持有限</option></select></label></div>
+      <fieldset><legend>推荐模拟器</legend><div class="platform-emulator-fields"><label>Windows<input name="emulators_windows" placeholder="RetroArch, PPSSPP"></label><label>Android<input name="emulators_android"></label><label>掌机 Linux<input name="emulators_handheld_linux"></label></div></fieldset>
+      <label class="check-line"><input name="enabled" type="checkbox" checked><span>在扫描、导入、导出和设备同步中启用</span></label>
+      <footer><button id="delete-custom-platform" type="button" class="danger-button" hidden>删除自定义平台</button><span></span><button type="button" data-close>取消</button><button type="submit" class="primary">保存平台</button></footer>
+    </form>
+  </dialog>
+  <dialog id="runtime-editor-dialog" class="runtime-editor-dialog">
+    <form id="runtime-editor-form">
+      <div class="dialog-head"><div><p>DECLARATIVE RUNTIME</p><h2 id="runtime-editor-title">添加自定义模拟器</h2></div><button type="button" class="icon-button" data-close aria-label="关闭"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
+      <details class="context-disclosure editor-disclosure"><summary>安全边界</summary><p>这里只保存可审查的声明，不执行模拟器、命令行或脚本。内置项目保持只读；需要调整时创建自己的适配。</p></details>
+      <label>适配类型<select id="runtime-editor-kind" name="kind"><option value="source">来源适配器</option><option value="frontend">前端适配器</option><option value="driver">模拟器驱动</option><option value="core">RetroArch 核心</option><option value="device">设备环境</option></select></label>
+      <label>显示名称<input name="name" required placeholder="例如：客厅 RetroArch"></label>
+
+      <section id="runtime-evidence" class="runtime-evidence" hidden>
+        <header><div><small>支持证据</small><strong id="runtime-evidence-level"></strong></div><span id="runtime-evidence-contract"></span></header>
+        <div class="runtime-evidence-grid"><div><small>证据范围</small><strong id="runtime-evidence-scope"></strong></div><div><small>验证日期</small><strong id="runtime-evidence-date"></strong></div><div id="runtime-evidence-device-row" hidden><small>验证设备</small><strong id="runtime-evidence-device"></strong></div><div id="runtime-evidence-version-row" hidden><small>软件版本</small><strong id="runtime-evidence-version"></strong></div><div id="runtime-evidence-scenarios-row" hidden><small>验证场景</small><strong id="runtime-evidence-scenarios"></strong></div></div>
+        <div id="runtime-evidence-targets" class="runtime-evidence-targets" hidden><small>按设备目标验证</small><div></div></div>
+        <p id="runtime-evidence-summary"></p>
+        <details id="runtime-evidence-sources" hidden><summary>参考来源</summary><ul></ul></details>
+      </section>
+
+      <section id="runtime-source-fields" class="runtime-editor-fields" hidden>
+        <div class="two"><label>格式标识<input name="source_format" placeholder="例如：pegasus-custom"></label><label>安全解析器<select name="source_handler"><option value="rom_directory">直接 ROM 扫描</option><option value="pegasus">Pegasus 元数据</option><option value="esde">ES-DE 元数据</option><option value="varkiv">中性恢复清单</option></select></label></div>
+        <label>契约版本<input name="source_contract" type="number" min="1" value="1"></label>
+        <label>声明能力<textarea name="source_capabilities" rows="5" placeholder="metadata=true&#10;media=true&#10;runtime_hints=true"></textarea><small>每行使用“能力=true/false”。自定义适配器只能选择内置、经过审计的解析器，不能加载代码或扫描未授权目录。</small></label>
+      </section>
+
+      <section id="runtime-frontend-fields" class="runtime-editor-fields" hidden>
+        <div class="two"><label>格式标识<input name="frontend_format"></label><label>安全导出器<select name="frontend_handler"><option value="pegasus">Pegasus 元数据生成器</option><option value="es-de">ES-DE XML 生成器</option></select></label></div>
+        <label>契约版本<input name="frontend_contract" type="number"></label>
+        <label>声明能力<textarea name="frontend_capabilities" rows="5"></textarea><small>自定义格式只能选择内置、经过审计的导出器；不会加载代码或执行模板脚本。</small></label>
+      </section>
+
+      <section id="runtime-driver-fields" class="runtime-editor-fields">
+        <div class="two"><label>驱动标识<input name="family" placeholder="retroarch-custom"></label><label>契约版本<input name="contract_version" type="number" min="1" value="1"></label></div>
+        <label>支持的平台<input name="platforms" placeholder="gba, snes, psx"><small>使用平台注册表中的标识，以逗号分隔。</small></label>
+        <label>支持的设备目标<input name="targets" placeholder="windows, android, rocknix"><small>必须与设备环境的 target 一致，以逗号分隔。</small></label>
+        <label>可执行文件候选<textarea name="executables" rows="3" placeholder="windows=retroarch.exe&#10;steamos-bazzite=retroarch"></textarea><small>每行写“设备目标=候选1,候选2”；客户端只会在显式授权的模拟器目录中核对。</small></label>
+        <label>用户目录内的配置位置<textarea name="config_paths" rows="3" placeholder="settings=config&#10;savedata=PSP/SAVEDATA"></textarea><small>每行写“用途=相对路径”；仅用于说明和生成配置，不会触发服务器扫描宿主目录。</small></label>
+        <label>启动参数（每行一个）<textarea name="arguments" rows="4" placeholder="-L&#10;{{core.library}}&#10;{{rom.path}}"></textarea><small>保存为 argv 数组；可使用白名单变量，不接受 shell 语法。</small></label>
+        <label class="check-line"><input name="requires_core" type="checkbox"><span>需要 RetroArch 核心映射</span></label>
+        <fieldset><legend>存档声明</legend><div class="runtime-four"><label>默认作用域<select name="save_scope"><option value="game">当前游戏版本</option><option value="platform">整个平台</option><option value="container">共享容器</option></select></label><label>默认布局<input name="save_layout" placeholder="single-file"></label><label>刷新时机<select name="save_refresh"><option value="process-exit">模拟器退出</option><option value="poll">定期检查</option><option value="manual">仅手动</option></select></label><label>可移植性<input name="save_portability" value="same-driver"></label></div><label>默认存档路径模板<textarea name="save_patterns" rows="3" placeholder="{{device.save_dir}}/{{edition.save_namespace}}.sav"></textarea></label><div class="two"><label>平台作用域覆盖<textarea name="save_scope_by_platform" rows="3" placeholder="gamecube=container&#10;wii=game"></textarea></label><label>平台布局覆盖<textarea name="save_layout_by_platform" rows="3" placeholder="gamecube=memory-card&#10;wii=directory"></textarea></label></div><label>平台路径覆盖<textarea name="save_patterns_by_platform" rows="4" placeholder="wii={{driver.user_dir}}/Wii/title/{{edition.title_id_high}}/{{edition.title_id_low}}/data"></textarea><small>每个平台一行；多个候选用逗号分隔。设备端不会执行通配符或脚本。</small></label></fieldset>
+        <details class="runtime-advanced"><summary>Android 显式 Intent</summary><div class="two"><label>首选 Package<input name="android_package" placeholder="org.example.emulator"></label><label>Activity<input name="android_activity" placeholder=".MainActivity"></label></div><label>备选 Package<textarea name="android_package_candidates" rows="2" placeholder="org.example.emulator.play"></textarea><small>每行一个官方包变体；客户端只选择已安装的显式包名。</small></label><div class="two"><label>Action<input name="android_action" value="android.intent.action.VIEW"></label><label>Data 模板<input name="android_data" placeholder="{{rom.uri}}"></label></div><label>字符串 Extras<textarea name="android_string_extras" rows="3" placeholder="ROM={{rom.uri}}&#10;CORE={{core.library}}"></textarea><small>每行一个 KEY=模板；只支持 Content URI 和文档列出的本地变量。</small></label><label>布尔 Extras<textarea name="android_boolean_extras" rows="2" placeholder="QUITFOCUS=true"></textarea></label><fieldset class="intent-flags"><legend>Intent flags</legend><label><input type="checkbox" name="android_flags" value="grant-read-uri">授权只读 URI</label><label><input type="checkbox" name="android_flags" value="grant-write-uri">授权写入 URI</label><label><input type="checkbox" name="android_flags" value="new-task">新任务</label><label><input type="checkbox" name="android_flags" value="clear-top">复用已有页面</label></fieldset></details>
+      </section>
+
+      <section id="runtime-core-fields" class="runtime-editor-fields" hidden>
+        <label>Core library 名称<textarea name="library_names" rows="3" placeholder="mgba_libretro"></textarea><small>每行一个不含扩展名的 library 候选；设备客户端只在授权 core 目录中核对。</small></label>
+        <label>支持的平台<input name="core_platforms" placeholder="gb, gbc, gba"></label>
+      </section>
+
+      <section id="runtime-device-fields" class="runtime-editor-fields" hidden>
+        <div class="two"><label>目标标识<input name="device_target" placeholder="my-handheld"></label><label>系统家族<input name="os_family" placeholder="handheld-linux"></label></div>
+        <div class="two"><label>发行版<input name="distribution" placeholder="rocknix"></label><label>架构<input name="architecture" placeholder="aarch64"></label></div>
+        <div class="two"><label>路径风格<select name="path_style"><option value="posix">POSIX</option><option value="windows">Windows</option><option value="android-uri">Android URI</option></select></label><label>最长路径<input name="max_path" type="number" min="64" max="32767" value="255"></label></div>
+        <label>逻辑目录<textarea name="device_paths" rows="5" placeholder="rom_dir=roms&#10;save_dir=saves&#10;config_dir=config&#10;core_dir=cores&#10;emulator_dir=emulators"></textarea><small>只声明设备内的逻辑根；不会触发服务器扫描。</small></label>
+        <label>默认前端<select name="default_frontend_id"></select></label>
+        <fieldset class="device-capabilities"><legend>文件系统能力</legend><label><input name="case_sensitive" type="checkbox" checked>区分大小写</label><label><input name="supports_hardlink" type="checkbox">支持硬链接</label><label><input name="supports_hooks" type="checkbox">支持安全事件钩子</label></fieldset>
+      </section>
+
+      <section id="runtime-editor-readonly" class="runtime-editor-readonly" hidden><strong>这是内置适配</strong><p>内置契约由版本迁移维护，不能在原位置修改。你可以关闭本窗口并创建自定义副本。</p></section>
+      <footer><button id="delete-runtime-item" type="button" class="danger-button" hidden>删除自定义适配</button><span></span><button type="button" data-close>取消</button><button id="save-runtime-item" type="submit" class="primary">保存适配</button></footer>
+    </form>
+  </dialog>
+  <script src="/i18n.js?v=0.1.0-preview.1"></script>
+  <script src="/app.js?v=0.1.0-preview.1"></script>
+</body>
+</html>

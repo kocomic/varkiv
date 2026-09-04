@@ -1,0 +1,342 @@
+openapi: 3.1.0
+info:
+  title: Varkiv Multiplayer Coordination API
+  summary: Stable coordination contract for emulator-aware multiplayer clients
+  version: v1
+  description: Short-lived session coordination and exact compatibility checks. The separate Varkiv web-netplay adapter can turn the EmulatorJS profile into an experimental browser player; this protocol itself does not relay gameplay traffic.
+  license:
+    name: Apache License 2.0
+    identifier: Apache-2.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+servers:
+  - url: /api/multiplayer/v1
+    description: Same-origin multiplayer coordination entry point
+security:
+  - bearerAuth: []
+tags:
+  - name: System
+    description: Protocol discovery, capabilities, and the machine-readable contract.
+  - name: Sessions
+    description: Short-lived coordination sessions with exact content and runtime identity checks.
+x-varkiv-common-response-headers:
+  X-Request-ID: Correlates one request across logs and structured errors.
+  X-Varkiv-API-Version: Always `v1` for this contract.
+  X-Varkiv-Multiplayer-Version: Always `v1` for this coordination protocol.
+  Cache-Control: Always `no-store` for API responses.
+paths:
+  /:
+    get:
+      operationId: getRoot
+      tags: [System]
+      summary: Protocol entry point
+      security: []
+      responses:
+        '200':
+          description: Protocol links
+          headers:
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            X-Varkiv-API-Version: {$ref: '#/components/headers/APIVersion'}
+            X-Varkiv-Multiplayer-Version: {$ref: '#/components/headers/MultiplayerVersion'}
+            Cache-Control: {$ref: '#/components/headers/CacheControl'}
+          content: {application/json: {schema: {$ref: '#/components/schemas/ProtocolRoot'}}}
+  /capabilities:
+    get:
+      operationId: getCapabilities
+      tags: [System]
+      summary: List coordination profiles and current delivery boundary
+      security: []
+      responses:
+        '200':
+          description: Capabilities
+          headers:
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            X-Varkiv-API-Version: {$ref: '#/components/headers/APIVersion'}
+            X-Varkiv-Multiplayer-Version: {$ref: '#/components/headers/MultiplayerVersion'}
+            Cache-Control: {$ref: '#/components/headers/CacheControl'}
+          content: {application/json: {schema: {$ref: '#/components/schemas/Capabilities'}}}
+  /openapi.yaml:
+    get:
+      operationId: getOpenapiYaml
+      tags: [System]
+      summary: Download this protocol contract
+      security: []
+      responses:
+        '200':
+          description: OpenAPI document
+          headers:
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            X-Varkiv-API-Version: {$ref: '#/components/headers/APIVersion'}
+            X-Varkiv-Multiplayer-Version: {$ref: '#/components/headers/MultiplayerVersion'}
+            Cache-Control: {$ref: '#/components/headers/CacheControl'}
+          content: {application/yaml: {schema: {type: string}}}
+  /sessions:
+    post:
+      operationId: postSessions
+      tags: [Sessions]
+      summary: Create a short-lived coordination session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/CreateSession'}
+            example:
+              profile_id: retroarch-netplay-v1
+              content: {sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, size: 131072, platform: nes}
+              runtime: {emulator: retroarch, version: 1.22.2, core: fceumm, core_version: git-abc123}
+              transport: relay
+              save_policy: isolated
+              host: {client_id: host-device, display_name: Host}
+      responses:
+        '201':
+          description: Session and one-time-visible invitation token
+          headers:
+            Location: {description: Stable URL of the new coordination session., schema: {type: string}}
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            X-Varkiv-API-Version: {$ref: '#/components/headers/APIVersion'}
+            X-Varkiv-Multiplayer-Version: {$ref: '#/components/headers/MultiplayerVersion'}
+            Cache-Control: {$ref: '#/components/headers/CacheControl'}
+          content: {application/json: {schema: {$ref: '#/components/schemas/CreatedSession'}}}
+        '400': {$ref: '#/components/responses/APIError'}
+        '401': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '415': {$ref: '#/components/responses/APIError'}
+        '422': {$ref: '#/components/responses/APIError'}
+  /sessions/{id}:
+    parameters: [{$ref: '#/components/parameters/SessionID'}]
+    get:
+      operationId: getSessionsById
+      tags: [Sessions]
+      summary: Read session state
+      responses:
+        '200':
+          description: Session state
+          headers:
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            X-Varkiv-API-Version: {$ref: '#/components/headers/APIVersion'}
+            X-Varkiv-Multiplayer-Version: {$ref: '#/components/headers/MultiplayerVersion'}
+            Cache-Control: {$ref: '#/components/headers/CacheControl'}
+          content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}
+        '401': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '410': {$ref: '#/components/responses/APIError'}
+  /sessions/{id}/join:
+    parameters: [{$ref: '#/components/parameters/SessionID'}]
+    post:
+      operationId: postSessionsByIdJoin
+      tags: [Sessions]
+      summary: Join using a scoped invitation and an exact content/runtime identity
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/JoinSession'}
+            example:
+              join_token: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+              content: {sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, size: 131072, platform: nes}
+              runtime: {emulator: retroarch, version: 1.22.2, core: fceumm, core_version: git-abc123}
+              client: {client_id: guest-device, display_name: Guest}
+      responses:
+        '200':
+          description: Joined session
+          headers:
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            X-Varkiv-API-Version: {$ref: '#/components/headers/APIVersion'}
+            X-Varkiv-Multiplayer-Version: {$ref: '#/components/headers/MultiplayerVersion'}
+            Cache-Control: {$ref: '#/components/headers/CacheControl'}
+          content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}
+        '400': {$ref: '#/components/responses/APIError'}
+        '401': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+        '409': {$ref: '#/components/responses/APIError'}
+        '410': {$ref: '#/components/responses/APIError'}
+        '415': {$ref: '#/components/responses/APIError'}
+        '422': {$ref: '#/components/responses/APIError'}
+  /sessions/{id}/close:
+    parameters: [{$ref: '#/components/parameters/SessionID'}]
+    post:
+      operationId: postSessionsByIdClose
+      tags: [Sessions]
+      summary: Close a session
+      responses:
+        '200':
+          description: Closed session
+          headers:
+            X-Request-ID: {$ref: '#/components/headers/RequestID'}
+            X-Varkiv-API-Version: {$ref: '#/components/headers/APIVersion'}
+            X-Varkiv-Multiplayer-Version: {$ref: '#/components/headers/MultiplayerVersion'}
+            Cache-Control: {$ref: '#/components/headers/CacheControl'}
+          content: {application/json: {schema: {$ref: '#/components/schemas/Session'}}}
+        '401': {$ref: '#/components/responses/APIError'}
+        '403': {$ref: '#/components/responses/APIError'}
+        '404': {$ref: '#/components/responses/APIError'}
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+      description: Owner token; device tokens are rejected because coordination session administration is owner-scoped.
+  headers:
+    RequestID:
+      description: Caller-supplied valid request identity or a server-generated identity.
+      schema: {type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9._-]+$'}
+    APIVersion:
+      description: Stable API envelope version used for this response.
+      schema: {type: string, const: v1}
+    MultiplayerVersion:
+      description: Stable multiplayer coordination protocol version.
+      schema: {type: string, const: v1}
+    CacheControl:
+      description: API responses are never stored by intermediaries or browsers.
+      schema: {type: string, const: no-store}
+  parameters:
+    SessionID: {name: id, in: path, required: true, schema: {type: string, pattern: '^[a-f0-9]{32}$'}, description: Opaque session identity returned by session creation.}
+  responses:
+    APIError:
+      description: Structured request failure
+      headers:
+        X-Request-ID: {$ref: '#/components/headers/RequestID'}
+        X-Varkiv-API-Version: {$ref: '#/components/headers/APIVersion'}
+        X-Varkiv-Multiplayer-Version: {$ref: '#/components/headers/MultiplayerVersion'}
+        Cache-Control: {$ref: '#/components/headers/CacheControl'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/APIErrorEnvelope'}
+          example:
+            error:
+              code: compatibility_mismatch
+              message: content.sha256, runtime.core_version
+              request_id: 40e39da4b75c41c28cf40b9f8de46c48
+  schemas:
+    ProtocolRoot:
+      type: object
+      additionalProperties: false
+      required: [name, protocol_version, links]
+      properties:
+        name: {type: string}
+        protocol_version: {type: string, const: v1}
+        links:
+          type: object
+          additionalProperties: false
+          required: [capabilities, openapi, sessions]
+          properties:
+            capabilities: {type: string, const: /api/multiplayer/v1/capabilities}
+            openapi: {type: string, const: /api/multiplayer/v1/openapi.yaml}
+            sessions: {type: string, const: /api/multiplayer/v1/sessions}
+    Capabilities:
+      type: object
+      additionalProperties: false
+      required: [protocol_version, coordination, automatic_launch, data_relay, profiles]
+      properties:
+        protocol_version: {type: string, const: v1}
+        coordination: {type: boolean, const: true}
+        automatic_launch: {type: boolean, const: false}
+        data_relay: {type: boolean, const: false}
+        profiles:
+          type: array
+          minItems: 2
+          items: {$ref: '#/components/schemas/Profile'}
+    Profile:
+      type: object
+      additionalProperties: false
+      required: [id, support_level, emulator, mode, transports, save_policies, compatibility, max_participants]
+      properties:
+        id: {type: string, enum: [retroarch-netplay-v1, emulatorjs-webrtc-v1]}
+        support_level: {type: string, enum: [coordination-preview, experimental-playback]}
+        emulator: {type: string, enum: [retroarch, emulatorjs]}
+        mode: {type: string, enum: [deterministic-input-sync, host-stream-webrtc]}
+        transports: {type: array, items: {type: string, enum: [relay, direct]}}
+        save_policies: {type: array, items: {type: string, enum: [isolated, host-authoritative, no-persist]}}
+        compatibility: {type: array, items: {type: string}}
+        max_participants: {type: integer, enum: [2, 4]}
+    ContentIdentity:
+      type: object
+      additionalProperties: false
+      required: [sha256, size, platform]
+      properties:
+        sha256: {type: string, pattern: '^[a-fA-F0-9]{64}$'}
+        size: {type: integer, format: int64, minimum: 1}
+        platform: {type: string, minLength: 1, maxLength: 64}
+    RuntimeIdentity:
+      type: object
+      additionalProperties: false
+      required: [emulator, version, core, core_version]
+      properties:
+        emulator: {type: string, enum: [retroarch, emulatorjs]}
+        version: {type: string, minLength: 1, maxLength: 64}
+        core: {type: string, minLength: 1, maxLength: 64}
+        core_version: {type: string, minLength: 1, maxLength: 128}
+    Participant:
+      type: object
+      additionalProperties: false
+      required: [client_id, display_name]
+      properties:
+        client_id: {type: string, minLength: 1, maxLength: 128}
+        display_name: {type: string, minLength: 1, maxLength: 80}
+    ParticipantState:
+      type: object
+      additionalProperties: false
+      required: [client_id, display_name, role, joined_at]
+      properties:
+        client_id: {type: string, minLength: 1, maxLength: 128}
+        display_name: {type: string, minLength: 1, maxLength: 80}
+        role: {type: string, enum: [host, player]}
+        joined_at: {type: string, format: date-time}
+    CreateSession:
+      type: object
+      additionalProperties: false
+      required: [profile_id, content, runtime, transport, save_policy, host]
+      properties:
+        profile_id: {type: string, enum: [retroarch-netplay-v1, emulatorjs-webrtc-v1]}
+        content: {$ref: '#/components/schemas/ContentIdentity'}
+        runtime: {$ref: '#/components/schemas/RuntimeIdentity'}
+        transport: {type: string, enum: [relay, direct]}
+        save_policy: {type: string, enum: [isolated, host-authoritative, no-persist]}
+        host: {$ref: '#/components/schemas/Participant'}
+    JoinSession:
+      type: object
+      additionalProperties: false
+      required: [join_token, content, runtime, client]
+      properties:
+        join_token: {type: string, minLength: 64, maxLength: 64}
+        content: {$ref: '#/components/schemas/ContentIdentity'}
+        runtime: {$ref: '#/components/schemas/RuntimeIdentity'}
+        client: {$ref: '#/components/schemas/Participant'}
+    Session:
+      type: object
+      additionalProperties: false
+      required: [id, protocol_version, profile_id, state, content, runtime, transport, save_policy, participants, created_at, expires_at]
+      properties:
+        id: {type: string, pattern: '^[a-f0-9]{32}$'}
+        protocol_version: {type: string, const: v1}
+        profile_id: {type: string, enum: [retroarch-netplay-v1, emulatorjs-webrtc-v1]}
+        state: {type: string, enum: [waiting, ready, closed]}
+        content: {$ref: '#/components/schemas/ContentIdentity'}
+        runtime: {$ref: '#/components/schemas/RuntimeIdentity'}
+        transport: {type: string, enum: [relay, direct]}
+        save_policy: {type: string, enum: [isolated, host-authoritative, no-persist]}
+        participants: {type: array, minItems: 1, maxItems: 4, items: {$ref: '#/components/schemas/ParticipantState'}}
+        created_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time}
+    CreatedSession:
+      type: object
+      additionalProperties: false
+      required: [session, join_token]
+      properties:
+        session: {$ref: '#/components/schemas/Session'}
+        join_token: {type: string, pattern: '^[a-f0-9]{64}$', description: Returned only from creation; the server retains only its SHA-256 digest}
+    APIErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, request_id]
+          properties:
+            code: {type: string}
+            message: {type: string}
+            request_id: {type: string}

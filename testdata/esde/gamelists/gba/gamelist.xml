@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gameList>
+  <game>
+    <path>../../roms/gba/示例汉化版.gba</path>
+    <name>示例游戏 汉化版</name>
+    <desc>只用于 Varkiv 自动化测试。</desc>
+    <image>../../media/gba/example-cover.svg</image>
+  </game>
+</gameList>

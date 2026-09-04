@@ -1,0 +1,32 @@
+{
+  "format_version": 6,
+  "frontend": "pegasus",
+  "locale": "en",
+  "custom_platforms": [],
+  "series": [],
+  "entries": [
+    {
+      "game_id": "e2e-standalone-v2-game",
+      "edition_id": "e2e-standalone-v2-edition",
+      "platform": "psp",
+      "game_default_title": "Portable Standalone V2",
+      "game_titles": {"zh-CN": "便携独立模拟器 V2"},
+      "edition_default_title": "Original",
+      "edition_titles": {"zh-CN": "原版"},
+      "edition_type": "original",
+      "languages": ["en"],
+      "product_code": "ULUS-00000",
+      "artifacts": ["psp/standalone-v2.iso"],
+      "artifact_records": [
+        {
+          "path": "psp/standalone-v2.iso",
+          "role": "rom",
+          "original_name": "standalone-v2.iso",
+          "size": 27,
+          "sha256": "73ff0956416b04b11e8f24390c7ee4dfea4822a2849119532f2be2655502911a"
+        }
+      ],
+      "media": []
+    }
+  ]
+}

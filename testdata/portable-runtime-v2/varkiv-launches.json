@@ -1,0 +1,91 @@
+{
+  "format_version": 2,
+  "device_profile_id": "e2e-runtime-v2-device",
+  "frontend_adapter_id": "e2e-runtime-v2-frontend",
+  "bindings": [
+    {
+      "edition_id": "e2e-runtime-v2-edition",
+      "platform_id": "gba",
+      "rom_path": "gba/runtime-v2.gba",
+      "binding": {
+        "device_profile_id": "e2e-runtime-v2-device",
+        "frontend_adapter_id": "e2e-runtime-v2-frontend",
+        "driver_id": "e2e-runtime-v2-driver",
+        "core_id": "e2e-runtime-v2-core",
+        "arguments": ["-L", "{{core.library}}", "{{rom.path}}"]
+      },
+      "arguments": ["-L", "e2e_mgba_libretro", "gba/runtime-v2.gba"],
+      "executable_hints": ["retroarch"]
+    }
+  ],
+  "runtime_catalog": {
+    "frontend_adapters": [
+      {
+        "id": "e2e-runtime-v2-frontend",
+        "name": "Portable manga metadata",
+        "format": "manga-pegasus",
+        "handler": "pegasus",
+        "contract_version": 1,
+        "capabilities": {"export": true, "neutral_manifest_v6": true},
+        "support_level": "catalogued",
+        "enabled": true
+      }
+    ],
+    "device_profiles": [
+      {
+        "id": "e2e-runtime-v2-device",
+        "name": "Portable runtime test device",
+        "contract_version": 1,
+        "target": "runtime-v2",
+        "os_family": "handheld-linux",
+        "path_style": "posix",
+        "case_sensitive": true,
+        "max_path": 255,
+        "default_frontend_id": "e2e-runtime-v2-frontend",
+        "paths": {"config_dir": "config", "save_dir": "saves", "rom_dir": "roms"},
+        "support_level": "catalogued",
+        "enabled": true
+      }
+    ],
+    "emulator_drivers": [
+      {
+        "id": "e2e-runtime-v2-driver",
+        "name": "Portable runtime test RetroArch",
+        "family": "retroarch",
+        "contract_version": 1,
+        "platforms": ["gba"],
+        "targets": ["runtime-v2"],
+        "launch": {"requires_core": true, "arguments": ["-L", "{{core.library}}", "{{rom.path}}"]},
+        "save": {"scope": "game", "layout": "single-file", "patterns": ["{{rom.stem}}.srm"], "refresh": "process-exit", "portability": "core-dependent"},
+        "support_level": "catalogued",
+        "enabled": true
+      }
+    ],
+    "retroarch_cores": [
+      {
+        "id": "e2e-runtime-v2-core",
+        "name": "Portable runtime test mGBA",
+        "contract_version": 1,
+        "library_names": ["e2e_mgba_libretro"],
+        "platforms": ["gba"],
+        "support_level": "catalogued",
+        "enabled": true
+      }
+    ],
+    "package_profile": {
+      "id": "e2e-runtime-v2-profile",
+      "name": "Portable runtime V2 package",
+      "frontend": "pegasus",
+      "target": "runtime-v2",
+      "device_profile_id": "e2e-runtime-v2-device",
+      "frontend_adapter_id": "e2e-runtime-v2-frontend",
+      "locale": "zh-CN",
+      "file_mode": "copy",
+      "output_slug": "e2e-runtime-v2",
+      "enabled": true,
+      "templates": [
+        {"name": "Edition core options", "scope": "edition", "output_path": "config/{{edition.id}}.cfg", "body": "core={{core.library}}\nrom={{rom.path}}\n", "sort_order": 10}
+      ]
+    }
+  }
+}

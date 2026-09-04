@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Varkiv Device Client</string>
+    <string name="title">Device Agent</string>
+    <string name="subtitle">Pair this handheld, grant only the folders you choose, and synchronize saves automatically.</string>
+    <string name="server_url">Server URL</string>
+    <string name="pairing_code">Pairing code</string>
+    <string name="device_name">Device name</string>
+    <string name="rom_platform">Platform for this ROM folder</string>
+    <string name="rom_platform_unavailable">Pair with the server to load platforms</string>
+    <string name="allow_http">Allow unencrypted HTTP explicitly (LAN only)</string>
+    <string name="pair">Pair device</string>
+    <string name="save_folder">Choose save folder</string>
+    <string name="emulator_save_driver">Emulator-specific save folder</string>
+    <string name="emulator_save_folder">Choose folder for selected emulator</string>
+    <plurals name="driver_save_folders_granted">
+        <item quantity="one">%1$d emulator save folder granted</item>
+        <item quantity="other">%1$d emulator save folders granted</item>
+    </plurals>
+    <string name="runtime_verification_title">Exact emulator and core verification</string>
+    <string name="runtime_verification_file">Choose selected runtime file</string>
+    <string name="runtime_verification_unavailable">No runtime file is currently requested</string>
+    <plurals name="runtime_files_granted">
+        <item quantity="one">%1$d of %2$d requested runtime file granted</item>
+        <item quantity="other">%1$d of %2$d requested runtime files granted</item>
+    </plurals>
+    <string name="runtime_files_not_required">No exact runtime file is required for this device</string>
+    <string name="rom_folder">Add or update ROM folder</string>
+    <string name="sync_now">Sync now</string>
+    <string name="schedule_sync">Enable periodic sync</string>
+    <string name="sync_unscheduled">Periodic sync disabled</string>
+    <string name="auto_state_disabled">Automatic sync is off</string>
+    <string name="auto_state_scheduled">Scheduled every 15 minutes when network, battery, and storage conditions allow</string>
+    <string name="auto_state_running">Automatic sync is running…</string>
+    <string name="auto_state_complete">Last automatic sync: ↑%1$d ↓%2$d ⚠%3$d</string>
+    <string name="auto_state_failed">Last automatic sync failed safely · %1$s</string>
+    <string name="auto_state_deferred">Android stopped the last run; it will be retried when conditions allow</string>
+    <string name="auto_error_permission">folder permission is unavailable</string>
+    <string name="auto_error_timeout">network request timed out</string>
+    <string name="auto_error_network">server is unreachable</string>
+    <string name="auto_error_io">network or storage operation failed</string>
+    <string name="auto_error_configuration">configuration or server protocol was rejected</string>
+    <string name="auto_error_generic">synchronization failed without changing local data</string>
+    <string name="launch_game">Launch matched game</string>
+    <string name="no_launches">No matched Android launch is ready</string>
+    <string name="granted">Folder access granted</string>
+    <plurals name="rom_folders_granted">
+        <item quantity="one">%1$d platform ROM folder granted</item>
+        <item quantity="other">%1$d platform ROM folders granted</item>
+    </plurals>
+    <string name="not_granted">No folder access</string>
+    <string name="paired">Paired securely</string>
+    <string name="pair_failed">Pairing failed</string>
+    <string name="repair_title">Replace this pairing?</string>
+    <string name="repair_message">This creates a new device identity and clears local sync revisions, pending operations, launch matches, and ROM hash cache. Your selected folder permissions and files are kept.</string>
+    <string name="repair_confirm">Replace pairing</string>
+    <string name="sync_scheduled">Periodic sync scheduled; Android may defer it to protect battery.</string>
+    <string name="sync_running">Synchronizing…</string>
+    <string name="sync_complete">Synchronization complete</string>
+    <string name="sync_failed">Synchronization failed</string>
+    <string name="acceptance_title">Real-device acceptance</string>
+    <string name="acceptance_intro">Check an item only after completing it on this device. Export creates a new privacy-minimized candidate report; it never uploads or replaces a report.</string>
+    <string name="acceptance_frontend_launch">Frontend launch completed</string>
+    <string name="acceptance_rom_launch">A local ROM launched successfully</string>
+    <string name="acceptance_emulator_exit">Emulator exit returned safely</string>
+    <string name="acceptance_saf_rom">SAF ROM folders survived restart</string>
+    <string name="acceptance_saf_save">SAF save folder read and write completed</string>
+    <string name="acceptance_keystore">Paired token survived restart in Android Keystore</string>
+    <string name="acceptance_retroarch">RetroArch Intent launched a matched game</string>
+    <string name="acceptance_ppsspp">PPSSPP Intent launched a matched game</string>
+    <string name="acceptance_background">Background sync recovered after Android deferred it</string>
+    <string name="acceptance_upgrade">App upgrade preserved pairing and folder grants</string>
+    <plurals name="acceptance_progress">
+        <item quantity="one">%1$d of %2$d required check confirmed</item>
+        <item quantity="other">%1$d of %2$d required checks confirmed</item>
+    </plurals>
+    <string name="acceptance_export">Export new candidate report</string>
+    <string name="acceptance_requires_pairing">Pair this device before exporting a report.</string>
+    <string name="acceptance_incomplete">Complete every hardware scenario, grant ROM and save folders, install RetroArch and PPSSPP, and sync at least one matched RetroArch core before exporting.</string>
+    <string name="acceptance_exported">Candidate report created. Review it locally before sharing.</string>
+    <string name="acceptance_export_failed">The candidate report could not be created; no existing file was changed.</string>
+    <string name="privacy_note">ROM names, local paths, SAF URIs, and access tokens stay on this device. Only hashes, sizes, portable IDs, and save bytes selected by a binding are sent to your server.</string>
+    <string name="third_party_licenses">Open-source licenses</string>
+    <string name="third_party_licenses_title">Project license and third-party notices</string>
+    <string name="third_party_licenses_unavailable">The bundled license information could not be opened.</string>
+    <string name="apache_license_heading">Project license: Apache-2.0</string>
+</resources>

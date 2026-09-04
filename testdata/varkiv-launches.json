@@ -1,0 +1,35 @@
+{
+  "format_version": 2,
+  "device_profile_id": "builtin-device-android-handheld",
+  "frontend_adapter_id": "builtin-frontend-pegasus",
+  "bindings": [
+    {
+      "edition_id": "e2e-runtime-batch-edition-one",
+      "platform_id": "gba",
+      "rom_path": "runtime-batch/gba/Batch One.gba",
+      "binding": {
+        "device_profile_id": "builtin-device-android-handheld",
+        "frontend_adapter_id": "builtin-frontend-pegasus",
+        "driver_id": "builtin-driver-retroarch",
+        "core_id": "builtin-core-mgba",
+        "arguments": ["-L", "{{core.library}}", "{{rom.path}}"]
+      },
+      "arguments": ["-L", "mgba_libretro", "runtime-batch/gba/Batch One.gba"],
+      "executable_hints": ["retroarch"]
+    },
+    {
+      "edition_id": "e2e-runtime-batch-edition-two",
+      "platform_id": "gba",
+      "rom_path": "runtime-batch/gba/Batch Two.gba",
+      "binding": {
+        "device_profile_id": "builtin-device-android-handheld",
+        "frontend_adapter_id": "builtin-frontend-pegasus",
+        "driver_id": "builtin-driver-retroarch",
+        "core_id": "builtin-core-mgba",
+        "arguments": ["-L", "{{core.library}}", "{{rom.path}}"]
+      },
+      "arguments": ["-L", "mgba_libretro", "runtime-batch/gba/Batch Two.gba"],
+      "executable_hints": ["retroarch"]
+    }
+  ]
+}

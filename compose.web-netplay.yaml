@@ -1,0 +1,40 @@
+services:
+  app:
+    environment:
+      VARKIV_WEB_NETPLAY_EMULATOR_ASSETS: ""
+      VARKIV_WEB_NETPLAY_EMULATOR_DIRECTORY: /opt/emulatorjs-netplay
+      VARKIV_WEB_NETPLAY_SIGNAL_UPSTREAM: http://netplay:3000
+      VARKIV_WEB_NETPLAY_ICE_SERVERS: "${VARKIV_WEB_NETPLAY_ICE_SERVERS:-[]}"
+    volumes:
+      - type: bind
+        source: "${EMULATORJS_NETPLAY_DATA_PATH:?Set EMULATORJS_NETPLAY_DATA_PATH to the verified 4.3.0-pre data directory}"
+        target: /opt/emulatorjs-netplay
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      netplay:
+        condition: service_healthy
+  netplay:
+    # This experimental sidecar is intentionally built from a checksum-pinned
+    # upstream source archive; it is not bundled into the Varkiv image.
+    image: "${VARKIV_NETPLAY_IMAGE:-varkiv-netplay:emulatorjs-4090ca7}"
+    build:
+      context: ./deploy/netplay-server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    read_only: true
+    user: "10002:10002"
+    expose:
+      - "3000"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/games"]
+      interval: 15s
+      timeout: 3s
+      start_period: 5s
+      retries: 4

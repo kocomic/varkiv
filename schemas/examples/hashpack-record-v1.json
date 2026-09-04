@@ -1,0 +1,10 @@
+{
+  "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "size": 1,
+  "platform": "gba",
+  "game_key": "example",
+  "game_default_title": "Example",
+  "edition_default_title": "Original",
+  "edition_type": "original",
+  "role": "rom"
+}

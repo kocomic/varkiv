@@ -1,0 +1,297 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:varkiv:schema:library-manifest:6",
+  "title": "Varkiv library manifest v6",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format_version",
+    "frontend",
+    "locale",
+    "custom_platforms",
+    "series",
+    "entries"
+  ],
+  "properties": {
+    "format_version": { "const": 6 },
+    "frontend": { "type": "string" },
+    "locale": { "type": "string" },
+    "custom_platforms": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/customPlatform" }
+    },
+    "series": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/series" }
+    },
+    "entries": {
+      "type": "array",
+      "maxItems": 50000,
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "nonEmpty": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "portableSlug": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "portablePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)(?!.*[\\\\\\u0000])[^/]+(?:/[^/]+)*$"
+    },
+    "titles": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/nonEmpty" },
+      "additionalProperties": { "$ref": "#/$defs/nonEmpty" }
+    },
+    "stringList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/nonEmpty" }
+    },
+    "customPlatform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "category"],
+      "properties": {
+        "id": { "$ref": "#/$defs/portableSlug" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "\\S"
+        },
+        "name_zh": { "type": "string", "maxLength": 120 },
+        "vendor": { "type": "string", "maxLength": 120 },
+        "category": {
+          "enum": ["console", "handheld", "arcade", "computer"]
+        },
+        "aliases": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/portableSlug" }
+        },
+        "extensions": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(?:directory|\\.[^/\\\\\\u0000]{1,15})$"
+          }
+        },
+        "esde_systems": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/portableSlug" }
+        },
+        "bios": { "enum": ["none", "optional", "required", "varies"] },
+        "runtime": { "enum": ["web", "web_experimental", "native"] },
+        "suggested_emulators": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "windows": { "$ref": "#/$defs/emulatorNames" },
+            "android": { "$ref": "#/$defs/emulatorNames" },
+            "handheld_linux": { "$ref": "#/$defs/emulatorNames" }
+          }
+        },
+        "enabled": { "const": true }
+      }
+    },
+    "emulatorNames": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120,
+        "pattern": "\\S"
+      }
+    },
+    "series": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "default_title",
+        "display_title",
+        "titles",
+        "members"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonEmpty" },
+        "default_title": { "$ref": "#/$defs/nonEmpty" },
+        "display_title": { "$ref": "#/$defs/nonEmpty" },
+        "description": { "type": "string" },
+        "titles": { "$ref": "#/$defs/titles" },
+        "members": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/seriesMember" }
+        }
+      }
+    },
+    "seriesMember": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["game_id", "relation_type", "sort_order"],
+      "properties": {
+        "game_id": { "$ref": "#/$defs/nonEmpty" },
+        "relation_type": {
+          "enum": [
+            "mainline",
+            "port",
+            "remake",
+            "spinoff",
+            "collection",
+            "other"
+          ]
+        },
+        "sort_order": { "type": "integer" }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "game_id",
+        "edition_id",
+        "platform",
+        "game_default_title",
+        "game_titles",
+        "edition_default_title",
+        "edition_titles",
+        "edition_type",
+        "languages",
+        "artifacts",
+        "artifact_records",
+        "media"
+      ],
+      "properties": {
+        "game_id": { "$ref": "#/$defs/nonEmpty" },
+        "edition_id": { "$ref": "#/$defs/nonEmpty" },
+        "platform": { "$ref": "#/$defs/portableSlug" },
+        "game_default_title": { "$ref": "#/$defs/nonEmpty" },
+        "game_titles": { "$ref": "#/$defs/titles" },
+        "edition_default_title": { "$ref": "#/$defs/nonEmpty" },
+        "edition_titles": { "$ref": "#/$defs/titles" },
+        "edition_type": {
+          "enum": [
+            "original",
+            "translation",
+            "hack",
+            "revision",
+            "homebrew",
+            "other"
+          ]
+        },
+        "version": { "type": "string" },
+        "languages": { "$ref": "#/$defs/stringList" },
+        "author": { "type": "string" },
+        "serial": { "type": "string" },
+        "product_code": { "type": "string" },
+        "title_id": { "type": "string" },
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/portablePath" }
+        },
+        "artifact_records": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": { "$ref": "#/$defs/artifact" }
+        },
+        "media": {
+          "type": "array",
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/media" }
+        }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "role"],
+      "properties": {
+        "path": { "$ref": "#/$defs/portablePath" },
+        "role": {
+          "enum": ["rom", "disc", "executable", "patch", "dlc", "update", "other"]
+        },
+        "disc_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "original_name": {
+          "type": "string",
+          "maxLength": 255,
+          "pattern": "^[^/\\\\]*$"
+        },
+        "size": { "type": "integer", "minimum": 0 },
+        "sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "media": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner_type",
+        "kind",
+        "path",
+        "original_name",
+        "mime_type",
+        "size",
+        "sort_order"
+      ],
+      "properties": {
+        "owner_type": { "enum": ["game", "edition"] },
+        "kind": {
+          "enum": [
+            "cover",
+            "box_front",
+            "box_back",
+            "box_spine",
+            "logo",
+            "screenshot",
+            "title_screen",
+            "background",
+            "fanart",
+            "marquee",
+            "bezel",
+            "manual",
+            "video",
+            "music",
+            "cartridge",
+            "poster",
+            "banner",
+            "tile",
+            "other"
+          ]
+        },
+        "path": { "$ref": "#/$defs/portablePath" },
+        "original_name": { "type": "string", "maxLength": 255 },
+        "mime_type": { "type": "string" },
+        "size": { "type": "integer", "minimum": 0 },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "locale": { "type": "string", "maxLength": 64 },
+        "sort_order": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

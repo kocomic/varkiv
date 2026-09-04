@@ -1,0 +1,116 @@
+name: Publish edge container
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: container-edge
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Build and publish multi-platform edge image
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Prepare immutable image identity
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          version="$(tr -d '\r\n' < internal/buildinfo/VERSION)"
+          source_sha="$(git rev-parse HEAD)"
+          test "$source_sha" = '${{ github.event.workflow_run.head_sha }}'
+          short_sha="${source_sha:0:12}"
+          {
+            echo "name=$image"
+            echo "version=$version"
+            echo "revision=$source_sha"
+            echo 'tags<<EOF'
+            echo "$image:edge"
+            echo "$image:sha-$short_sha"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Register ARM64 user-mode execution
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push amd64 and arm64 image
+        id: push
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ steps.image.outputs.revision }}
+            org.opencontainers.image.version=${{ steps.image.outputs.version }}
+          cache-from: type=gha,scope=varkiv-container
+          cache-to: type=gha,mode=max,scope=varkiv-container
+          provenance: mode=max
+          sbom: true
+
+      - name: Attest published image provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-name: ${{ steps.image.outputs.name }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Render digest-pinned NAS Compose
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir deployment
+          image_ref='${{ steps.image.outputs.name }}@${{ steps.push.outputs.digest }}'
+          ./scripts/render-container-deployment.sh \
+            --image "$image_ref" \
+            --out deployment/compose.yaml
+          awk -v image="$image_ref" \
+            '/^VARKIV_IMAGE=/{print "VARKIV_IMAGE=" image; next} {print}' \
+            .env.ghcr.example > deployment/env.example
+          printf '%s\n' "$image_ref" > deployment/IMAGE.txt
+          sha256sum deployment/compose.yaml deployment/env.example deployment/IMAGE.txt > deployment/SHA256SUMS
+
+      - name: Upload digest-pinned deployment bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: varkiv-edge-deployment-${{ github.run_number }}
+          path: deployment
+          if-no-files-found: error
+          retention-days: 30

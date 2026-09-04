@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Varkiv 裝置用戶端</string>
+    <string name="title">裝置用戶端</string>
+    <string name="subtitle">配對這台掌機，只授權你選擇的目錄，並自動同步存檔。</string>
+    <string name="server_url">服務位址</string>
+    <string name="pairing_code">配對碼</string>
+    <string name="device_name">裝置名稱</string>
+    <string name="rom_platform">這個 ROM 目錄屬於</string>
+    <string name="rom_platform_unavailable">配對服務後載入平台</string>
+    <string name="allow_http">明確允許未加密 HTTP（僅限可信區域網路）</string>
+    <string name="pair">配對裝置</string>
+    <string name="save_folder">選擇存檔目錄</string>
+    <string name="emulator_save_driver">獨立模擬器存檔目錄</string>
+    <string name="emulator_save_folder">為所選模擬器選擇目錄</string>
+    <plurals name="driver_save_folders_granted">
+        <item quantity="other">已授權 %1$d 個模擬器存檔目錄</item>
+    </plurals>
+    <string name="runtime_verification_title">模擬器與核心精確驗真</string>
+    <string name="runtime_verification_file">選擇目前執行檔案</string>
+    <string name="runtime_verification_unavailable">目前沒有需要驗真的執行檔案</string>
+    <plurals name="runtime_files_granted">
+        <item quantity="other">已授權 %1$d / %2$d 個執行檔案</item>
+    </plurals>
+    <string name="runtime_files_not_required">這台裝置目前不需要執行檔案驗真</string>
+    <string name="rom_folder">新增或更新 ROM 目錄</string>
+    <string name="sync_now">立即同步</string>
+    <string name="schedule_sync">啟用定期同步</string>
+    <string name="sync_unscheduled">已停用定期同步</string>
+    <string name="auto_state_disabled">自動同步已關閉</string>
+    <string name="auto_state_scheduled">每 15 分鐘嘗試；僅在網路、電量與儲存條件允許時執行</string>
+    <string name="auto_state_running">正在自動同步…</string>
+    <string name="auto_state_complete">上次自動同步：↑%1$d ↓%2$d ⚠%3$d</string>
+    <string name="auto_state_failed">上次自動同步已安全失敗 · %1$s</string>
+    <string name="auto_state_deferred">Android 中止了上次工作；條件允許時會重試</string>
+    <string name="auto_error_permission">目錄權限無法使用</string>
+    <string name="auto_error_timeout">網路要求逾時</string>
+    <string name="auto_error_network">無法連線服務</string>
+    <string name="auto_error_io">網路或儲存操作失敗</string>
+    <string name="auto_error_configuration">設定或服務協定遭拒絕</string>
+    <string name="auto_error_generic">同步安全失敗，本機資料未被修改</string>
+    <string name="launch_game">啟動已配對遊戲</string>
+    <string name="no_launches">尚無可用的 Android 啟動綁定</string>
+    <string name="granted">已授權目錄存取</string>
+    <plurals name="rom_folders_granted">
+        <item quantity="other">已授權 %1$d 個平台的 ROM 目錄</item>
+    </plurals>
+    <string name="not_granted">尚未授權目錄</string>
+    <string name="paired">已安全配對</string>
+    <string name="pair_failed">配對失敗</string>
+    <string name="repair_title">取代目前配對？</string>
+    <string name="repair_message">這會建立新的裝置身分，並清除本機同步版本、待處理操作、啟動配對與 ROM 雜湊快取。已選目錄權限和檔案會保留。</string>
+    <string name="repair_confirm">確認取代配對</string>
+    <string name="sync_scheduled">已安排定期同步；Android 可能為節省電量延後執行。</string>
+    <string name="sync_running">正在同步…</string>
+    <string name="sync_complete">同步完成</string>
+    <string name="sync_failed">同步失敗</string>
+    <string name="acceptance_title">實機驗收</string>
+    <string name="acceptance_intro">只有在這台裝置上親自完成後才能勾選。匯出只會新建一份隱私最小化候選報告，不會上傳或覆蓋既有報告。</string>
+    <string name="acceptance_frontend_launch">已完成前端啟動</string>
+    <string name="acceptance_rom_launch">已成功啟動本機 ROM</string>
+    <string name="acceptance_emulator_exit">結束模擬器後已安全返回</string>
+    <string name="acceptance_saf_rom">重新啟動後 SAF ROM 目錄授權仍有效</string>
+    <string name="acceptance_saf_save">已完成 SAF 存檔目錄讀寫</string>
+    <string name="acceptance_keystore">重新啟動後 Android Keystore 中的配對權杖仍有效</string>
+    <string name="acceptance_retroarch">RetroArch Intent 已啟動相符遊戲</string>
+    <string name="acceptance_ppsspp">PPSSPP Intent 已啟動相符遊戲</string>
+    <string name="acceptance_background">Android 延後工作後背景同步已恢復</string>
+    <string name="acceptance_upgrade">應用程式升級後配對與目錄授權仍保留</string>
+    <plurals name="acceptance_progress">
+        <item quantity="other">已確認 %1$d / %2$d 項必測情境</item>
+    </plurals>
+    <string name="acceptance_export">匯出新的候選報告</string>
+    <string name="acceptance_requires_pairing">請先配對這台裝置再匯出報告。</string>
+    <string name="acceptance_incomplete">請完成全部實機情境、授權 ROM 與存檔目錄、安裝 RetroArch 和 PPSSPP，並至少同步一個已配對的 RetroArch 核心後再匯出。</string>
+    <string name="acceptance_exported">候選報告已新建；分享前請先在本機核對。</string>
+    <string name="acceptance_export_failed">無法新建候選報告；既有檔案沒有被修改。</string>
+    <string name="privacy_note">ROM 名稱、本機路徑、SAF URI 與存取權杖只留在本機。只會向你的服務傳送雜湊、大小、可攜式 ID，以及存檔綁定明確選擇的位元組。</string>
+    <string name="third_party_licenses">開源授權</string>
+    <string name="third_party_licenses_title">專案授權與第三方聲明</string>
+    <string name="third_party_licenses_unavailable">無法開啟應用程式內建的授權資訊。</string>
+    <string name="apache_license_heading">專案授權：Apache-2.0</string>
+</resources>

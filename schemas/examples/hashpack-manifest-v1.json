@@ -1,0 +1,14 @@
+{
+  "format_version": 1,
+  "pack_id": "f1df59484f62847e49857be064f14069517d11b76170b3926f89f4fccbd4eee6",
+  "source": {
+    "id": "example",
+    "name": "Example identity set",
+    "publisher": "Varkiv contributors",
+    "license": "CC0-1.0"
+  },
+  "release": "2026-09",
+  "created_at": "2026-09-04T00:00:00Z",
+  "record_count": 1,
+  "records_sha256": "43881330b5d573eee8cd4527674e07032eacaa44084b904cc432422ffbf8f978"
+}
