@@ -98,8 +98,16 @@ cleanup() {
   if [[ "$created_image" == true ]]; then
     docker image rm "$image" >/dev/null 2>&1 || true
   fi
-  case "$fixture_root" in
-    "${TMPDIR:-/tmp}"/varkiv-nas-compose.*) rm -rf -- "$fixture_root" ;;
+	case "$fixture_root" in
+	  "${TMPDIR:-/tmp}"/varkiv-nas-compose.*)
+	    # The application deliberately creates private 0700 backup directories
+	    # as uid 10001. Remove only this validated fixture's contents from an
+	    # isolated root container, then let the host remove the empty mktemp root.
+	    docker run --rm --user 0:0 --entrypoint /bin/sh \
+	      --mount "type=bind,src=$fixture_root,dst=/fixture" \
+	      "$image" -c 'find /fixture -mindepth 1 -depth -delete'
+	    rmdir -- "$fixture_root"
+	    ;;
     *) printf '%s\n' 'error: refusing to clean an unexpected fixture path' >&2 ;;
   esac
   if ((status != 0)); then
