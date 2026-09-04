@@ -101,7 +101,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $testOutput = @(& go test -count=1 -coverprofile=coverage.out ./... 2>&1)
+          $testOutput = @(& go test -count=1 "-coverprofile=coverage.out" ./... 2>&1)
           $testExitCode = $LASTEXITCODE
           $testOutput | ForEach-Object { Write-Output $_ }
           if ($testExitCode -ne 0) {
@@ -300,7 +300,19 @@ jobs:
         run: |
           set -euo pipefail
           sudo chmod 666 /dev/kvm
-          ./scripts/acceptance-android-emulator.sh --port 18088
+          diagnostic_log="$(mktemp)"
+          cleanup() { rm -f -- "$diagnostic_log"; }
+          trap cleanup EXIT
+          set +e
+          ./scripts/acceptance-android-emulator.sh --port 18088 2>&1 | tee "$diagnostic_log"
+          status=${PIPESTATUS[0]}
+          set -e
+          if ((status != 0)); then
+            diagnostic="$(grep -E 'Android AVD acceptance failed \(stage=[a-z0-9-]+ line=[0-9]+ status=[0-9]+\)' "$diagnostic_log" | tail -n 1 || true)"
+            [[ -n "$diagnostic" ]] || diagnostic="Android AVD acceptance failed before a stage diagnostic was emitted"
+            printf '::error title=Android AVD acceptance::%s\n' "$diagnostic"
+            exit "$status"
+          fi
 
   container:
     name: Hardened container smoke test
@@ -340,7 +352,21 @@ jobs:
         shell: bash
         env:
           VARKIV_PPSSPP_AGENT_IMAGE: varkiv:ci
-        run: ./scripts/acceptance-device-ppsspp-save.sh
+        run: |
+          set -euo pipefail
+          diagnostic_log="$(mktemp)"
+          cleanup() { rm -f -- "$diagnostic_log"; }
+          trap cleanup EXIT
+          set +e
+          ./scripts/acceptance-device-ppsspp-save.sh 2>&1 | tee "$diagnostic_log"
+          status=${PIPESTATUS[0]}
+          set -e
+          if ((status != 0)); then
+            diagnostic="$(grep -E 'PPSSPP Agent acceptance failed \(stage=[a-z0-9-]+ line=[0-9]+ status=[0-9]+\)' "$diagnostic_log" | tail -n 1 || true)"
+            [[ -n "$diagnostic" ]] || diagnostic="PPSSPP Agent acceptance failed before a stage diagnostic was emitted"
+            printf '::error title=PPSSPP Agent acceptance::%s\n' "$diagnostic"
+            exit "$status"
+          fi
 
       - name: Run SteamOS and Bazzite RetroArch Agent acceptance
         shell: bash

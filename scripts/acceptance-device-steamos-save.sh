@@ -205,7 +205,7 @@ pair_output_a="$(run_agent "${device_a_root}" agent pair --config /device/agent.
   --name 'SteamOS Agent A' --root /device --os linux --distribution steamos-bazzite --arch amd64 --allow-http \
   --path save_dir=/device/saves --rom-root gba=/device/roms/gba)"
 [[ "${pair_output_a}" == "paired=true config_saved=true" ]] || { echo "SteamOS Agent A pairing did not complete" >&2; exit 1; }
-[[ "$(stat -f '%Lp' "${agent_config_a}" 2>/dev/null || stat -c '%a' "${agent_config_a}")" == "600" ]] || { echo "SteamOS Agent A config permissions are not private" >&2; exit 1; }
+[[ "$(stat -c '%a' "${agent_config_a}" 2>/dev/null || stat -f '%Lp' "${agent_config_a}")" == "600" ]] || { echo "SteamOS Agent A config permissions are not private" >&2; exit 1; }
 
 pairing_code_b="$(post_json pairing-codes '{"expires_in_seconds":600,"requested_device":{"device_profile_id":"builtin-device-steamos-bazzite"}}' | jq -er '.code')"
 pair_output_b="$(run_target_pair agent pair --config /home/deck/.config/varkiv/agent.json --server http://server:8080 --code "${pairing_code_b}" \
@@ -213,7 +213,7 @@ pair_output_b="$(run_target_pair agent pair --config /home/deck/.config/varkiv/a
   --os linux --distribution steamos-bazzite --arch amd64 --allow-http \
   --path save_dir=/home/deck/.local/share/varkiv/saves --rom-root gba=/home/deck/Games/gba)"
 [[ "${pair_output_b}" == "paired=true config_saved=true" ]] || { echo "SteamOS packaged Agent pairing did not complete" >&2; exit 1; }
-[[ "$(stat -f '%Lp' "${agent_config_b_pair}" 2>/dev/null || stat -c '%a' "${agent_config_b_pair}")" == "600" ]] || { echo "SteamOS packaged Agent config permissions are not private" >&2; exit 1; }
+[[ "$(stat -c '%a' "${agent_config_b_pair}" 2>/dev/null || stat -f '%Lp' "${agent_config_b_pair}")" == "600" ]] || { echo "SteamOS packaged Agent config permissions are not private" >&2; exit 1; }
 
 "${host_binary}" agent target-package --kind steamos-bazzite --binary "${varkiv_binary}" \
   --config "${agent_config_b_pair}" --out "${package_root}" >/dev/null

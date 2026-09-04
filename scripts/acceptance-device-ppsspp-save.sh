@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 umask 077
+
+stage="argument-validation"
+report_error() {
+  local status=$?
+  local line=$1
+  if [[ "${stage}" != "expected-conflict" ]]; then
+    printf 'PPSSPP Agent acceptance failed (stage=%s line=%s status=%s)\n' "${stage}" "${line}" "${status}" >&2
+  fi
+  return "${status}"
+}
+trap 'report_error "$LINENO"' ERR
 
 usage() {
   printf '%s\n' 'Usage: scripts/acceptance-device-ppsspp-save.sh' '' \
@@ -16,6 +27,7 @@ elif (($# > 0)); then
 fi
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+stage="fixture-setup"
 version="$(tr -d '[:space:]' < "${project_root}/internal/buildinfo/VERSION")"
 image="${VARKIV_PPSSPP_AGENT_IMAGE:-varkiv:${version}}"
 temp_parent="${TMPDIR:-/tmp}"
@@ -58,8 +70,10 @@ trap cleanup EXIT INT TERM
 for command_name in docker go curl jq openssl shasum stat find wc cmp id; do
   command -v "${command_name}" >/dev/null 2>&1 || { echo "missing required command: ${command_name}" >&2; exit 1; }
 done
+stage="image-preflight"
 docker image inspect "${image}" >/dev/null 2>&1 || { echo "missing current Varkiv image: ${image}" >&2; exit 1; }
 
+stage="rom-fixture"
 fixture_rom="${project_root}/testdata/portable-standalone-v2/psp/standalone-v2.iso"
 expected_rom_sha="73ff0956416b04b11e8f24390c7ee4dfea4822a2849119532f2be2655502911a"
 [[ -f "${fixture_rom}" && ! -L "${fixture_rom}" ]] || { echo "PPSSPP fixture ROM is unavailable" >&2; exit 1; }
@@ -76,17 +90,20 @@ cp "${fixture_rom}" "${server_root}/library/psp/agent-ppsspp.iso"
 printf '%s' 'ppsspp-agent-param-v1' > "${device_a_root}/PPSSPP-user/${save_relative}/PARAM.SFO"
 printf '%s' 'ppsspp-agent-data-v1' > "${device_a_root}/PPSSPP-user/${save_relative}/DATA.BIN"
 
+stage="agent-build"
 (
   cd "${project_root}"
   CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -o "${varkiv_binary}" ./cmd/varkiv
 )
 chmod -R a+rwX "${server_root}" "${device_a_root}" "${device_b_root}"
 chmod 0755 "${varkiv_binary}"
+stage="agent-runtime-version"
 runtime_version="$(docker run --rm --read-only --cap-drop=ALL --security-opt=no-new-privileges \
   --mount "type=bind,src=${varkiv_binary},dst=/usr/local/bin/varkiv,readonly" \
   --entrypoint /usr/local/bin/varkiv "${image}" version | awk 'NF >= 2 {print $2}')"
 [[ "${runtime_version}" == "${version}" ]] || { echo "Linux Agent version identity drifted" >&2; exit 1; }
 
+stage="server-start"
 owner_token="ppsspp-agent-$(openssl rand -hex 24)"
 docker network create "${network_name}" >/dev/null
 docker run --detach --rm --name "${server_container}" --network "${network_name}" --network-alias server \
@@ -106,6 +123,7 @@ for _ in $(seq 1 100); do
 done
 [[ "${mapped_address}" == 127.0.0.1:* ]] || { echo "PPSSPP Agent server was not published on loopback" >&2; exit 1; }
 server_origin="http://${mapped_address}"
+stage="server-readiness"
 for _ in $(seq 1 200); do
   if curl --silent --show-error --fail "${server_origin}/api/v1/health/ready" >/dev/null 2>&1; then break; fi
   sleep 0.1
@@ -121,6 +139,7 @@ post_json() {
   owner_api --request POST --header 'Content-Type: application/json' --data-binary "${body}" "${server_origin}/api/v1/${path}"
 }
 
+stage="server-catalog-setup"
 post_json games '{"id":"agent-ppsspp-game","default_title":"Agent PPSSPP fixture","platform":"psp","titles":{}}' >/dev/null
 post_json editions '{"id":"agent-ppsspp-edition","game_id":"agent-ppsspp-game","default_title":"Agent PPSSPP fixture","edition_type":"original","languages":["en"],"product_code":"ULUS-00000","titles":{},"artifact_path":"psp/agent-ppsspp.iso","artifact_role":"rom"}' >/dev/null
 post_json save-bindings/setup '{"stream":{"id":"agent-ppsspp-stream","owner_type":"edition","owner_key":"agent-ppsspp-edition","driver_id":"builtin-driver-ppsspp","portability":"driver-dependent","edition_ids":["agent-ppsspp-edition"],"compatibility":"native"},"binding":{"id":"agent-ppsspp-rocknix-binding","edition_id":"agent-ppsspp-edition","device_profile_id":"builtin-device-rocknix","driver_id":"builtin-driver-ppsspp","local_paths":["{{driver.user_dir}}/PSP/SAVEDATA/{{edition.product_code}}"],"discovery":{"mode":"directory","refresh":"process-exit"},"enabled":true}}' >/dev/null
@@ -149,27 +168,34 @@ pair_agent() {
     --path save_dir=/device/saves --driver-root builtin-driver-ppsspp=/device/PPSSPP-user \
     --rom-root psp=/device/roms/psp)"
   [[ "${output}" == "paired=true config_saved=true" ]] || { echo "PPSSPP Agent pairing did not complete" >&2; exit 1; }
-  [[ "$(stat -f '%Lp' "${config}" 2>/dev/null || stat -c '%a' "${config}")" == "600" ]] || { echo "PPSSPP Agent config permissions are not private" >&2; exit 1; }
+  [[ "$(stat -c '%a' "${config}" 2>/dev/null || stat -f '%Lp' "${config}")" == "600" ]] || { echo "PPSSPP Agent config permissions are not private" >&2; exit 1; }
 }
 
+stage="pair-device-a"
 pair_agent "${device_a_root}" "${agent_config_a}" 'PPSSPP Agent A'
+stage="pair-device-b"
 pair_agent "${device_b_root}" "${agent_config_b}" 'PPSSPP Agent B'
 
+stage="initial-upload"
 sync_a1="$(run_agent "${device_a_root}" agent sync --config /device/agent.json)"
 [[ "${sync_a1}" == *"sync_status=complete"* && "${sync_a1}" == *"uploaded=1"* && "${sync_a1}" == *"downloaded=0"* ]] || { echo "PPSSPP Agent A initial upload failed" >&2; exit 1; }
+stage="initial-download"
 sync_b1="$(run_agent "${device_b_root}" agent sync --config /device/agent.json)"
 [[ "${sync_b1}" == *"sync_status=complete"* && "${sync_b1}" == *"uploaded=0"* && "${sync_b1}" == *"downloaded=1"* ]] || { echo "PPSSPP Agent B initial download failed" >&2; exit 1; }
 for name in PARAM.SFO DATA.BIN; do
   cmp "${device_a_root}/PPSSPP-user/${save_relative}/${name}" "${device_b_root}/PPSSPP-user/${save_relative}/${name}"
 done
 
+stage="second-upload"
 printf '%s' 'ppsspp-agent-data-v2' > "${device_a_root}/PPSSPP-user/${save_relative}/DATA.BIN"
 sync_a2="$(run_agent "${device_a_root}" agent sync --config /device/agent.json)"
 [[ "${sync_a2}" == *"uploaded=1"* && "${sync_a2}" == *"conflicts=0"* ]] || { echo "PPSSPP Agent A second upload failed" >&2; exit 1; }
+stage="second-download"
 sync_b2="$(run_agent "${device_b_root}" agent sync --config /device/agent.json)"
 [[ "${sync_b2}" == *"downloaded=1"* && "${sync_b2}" == *"conflicts=0"* ]] || { echo "PPSSPP Agent B atomic update failed" >&2; exit 1; }
 [[ "$(<"${device_b_root}/PPSSPP-user/${save_relative}/DATA.BIN")" == 'ppsspp-agent-data-v2' ]] || { echo "PPSSPP Agent B did not install the second revision" >&2; exit 1; }
 
+stage="recoverable-backup"
 backup_root="${device_b_root}/.varkiv/backups/agent-ppsspp-stream"
 backup_dir=""
 backup_count=0
@@ -180,27 +206,33 @@ done < <(find "${backup_root}" -mindepth 1 -maxdepth 1 -type d -print)
 [[ "${backup_count}" == 1 ]] || { echo "PPSSPP recoverable backup count drifted" >&2; exit 1; }
 [[ "$(<"${backup_dir}/DATA.BIN")" == 'ppsspp-agent-data-v1' ]] || { echo "PPSSPP recoverable backup content drifted" >&2; exit 1; }
 
+stage="third-upload"
 printf '%s' 'ppsspp-agent-data-v3' > "${device_a_root}/PPSSPP-user/${save_relative}/DATA.BIN"
 sync_a3="$(run_agent "${device_a_root}" agent sync --config /device/agent.json)"
 [[ "${sync_a3}" == *"uploaded=1"* ]] || { echo "PPSSPP Agent A third upload failed" >&2; exit 1; }
 printf '%s' 'ppsspp-agent-local-important' > "${device_b_root}/PPSSPP-user/${save_relative}/PARAM.SFO"
+stage="expected-conflict"
 set +e
 conflict_output="$(run_agent "${device_b_root}" agent sync --config /device/agent.json 2>&1)"
 conflict_status=$?
 set -e
+stage="conflict-verification"
 [[ "${conflict_status}" != 0 && "${conflict_output}" == *"conflicts=1"* ]] || { echo "PPSSPP Agent conflict was not preserved" >&2; exit 1; }
 [[ "$(<"${device_b_root}/PPSSPP-user/${save_relative}/PARAM.SFO")" == 'ppsspp-agent-local-important' ]] || { echo "PPSSPP Agent conflict overwrote local data" >&2; exit 1; }
 
+stage="server-evidence"
 revisions_json="$(owner_api "${server_origin}/api/v1/save-streams/agent-ppsspp-stream/revisions?limit=20&offset=0")"
 jq -e '(.data | length) == 3 and all(.data[]; .file_count == 2) and all(.data[].files[]; .logical_path == "DATA.BIN" or .logical_path == "PARAM.SFO")' <<<"${revisions_json}" >/dev/null
 devices_json="$(owner_api "${server_origin}/api/v1/devices?limit=20&offset=0")"
 jq -e '(.data | length) == 2 and all(.data[]; .device_profile_id == "builtin-device-rocknix" and .capabilities.save_streams == true and .capabilities.multi_file_saves == true)' <<<"${devices_json}" >/dev/null
 
+stage="privacy-verification"
 combined_output="${sync_a1}${sync_b1}${sync_a2}${sync_b2}${sync_a3}${conflict_output}${revisions_json}${devices_json}"
 for private_value in '/device/' 'private-device-game.iso' 'PPSSPP-user' 'ULUS-00000' "${owner_token}"; do
   [[ "${combined_output}" != *"${private_value}"* ]] || { echo "PPSSPP Agent output disclosed private device data" >&2; exit 1; }
 done
 
+stage="report"
 rm -f -- "${agent_config_a}" "${agent_config_b}" "${agent_config_a}.sync.lock" "${agent_config_b}.sync.lock"
 jq -n --arg version "${runtime_version}" --arg rom_sha256 "${expected_rom_sha}" \
   '{format:"varkiv-ppsspp-agent-acceptance-v1",version:$version,target:"rocknix",os_family:"linux",architecture:"arm64",driver_id:"builtin-driver-ppsspp",driver_root_explicit:true,product_code_directory:true,rom_sha256:$rom_sha256,paired_devices:2,files_per_revision:2,uploads:3,downloads:2,conflicts:1,revisions:3,recoverable_backup:true,privacy:{user_library_read:false,paths_reported:false,tokens_reported:false,agent_configs_retained:false}}' > "${evidence_root}/report.json"

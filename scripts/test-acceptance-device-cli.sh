@@ -52,6 +52,19 @@ if rg -n '\.schema_version == [0-9]+' "${project_root}/scripts"/acceptance-*.sh;
   exit 1
 fi
 
+if rg -n "stat -f '%Lp'.*2>/dev/null \\|\\| stat -c '%a'" "${project_root}/scripts"/acceptance-*.sh; then
+  echo "acceptance scripts must try GNU stat before BSD stat" >&2
+  exit 1
+fi
+mode_probe="${test_root}/private-mode-probe"
+: >"${mode_probe}"
+chmod 600 "${mode_probe}"
+[[ "$(stat -c '%a' "${mode_probe}" 2>/dev/null || stat -f '%Lp' "${mode_probe}")" == 600 ]] || {
+  echo "portable private-file mode probe failed" >&2
+  exit 1
+}
+rm -f -- "${mode_probe}"
+
 [[ -z "$(find "${test_root}" -mindepth 1 -print -quit)" ]] || {
   echo "help or invalid-argument checks created acceptance resources" >&2
   exit 1

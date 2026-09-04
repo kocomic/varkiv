@@ -166,7 +166,7 @@ pair_output_b="$(run_target_pair agent pair --config /userdata/system/varkiv/age
   --name 'KNULLI packaged Agent' --root /userdata/system/varkiv --os linux --distribution knulli --arch arm64 --allow-http \
   --path save_dir=/userdata/system/varkiv/saves --rom-root gba=/userdata/roms/gba)"
 [[ "${pair_output_b}" == 'paired=true config_saved=true' ]] || { echo "KNULLI target pairing failed" >&2; exit 1; }
-[[ "$(stat -f '%Lp' "${pair_config}" 2>/dev/null || stat -c '%a' "${pair_config}")" == 600 ]] || { echo "KNULLI target config permissions drifted" >&2; exit 1; }
+[[ "$(stat -c '%a' "${pair_config}" 2>/dev/null || stat -f '%Lp' "${pair_config}")" == 600 ]] || { echo "KNULLI target config permissions drifted" >&2; exit 1; }
 
 "${host_binary}" agent target-package --kind knulli --binary "${varkiv_binary}" --config "${pair_config}" --out "${package_root}" >/dev/null
 package_verification="$("${host_binary}" agent target-package verify --path "${package_root}" --json)"

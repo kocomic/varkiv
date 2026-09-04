@@ -168,7 +168,7 @@ pair_output_b="$(run_target_pair agent pair --config /mnt/SDCARD/App/Varkiv/agen
   --name 'OnionOS packaged Agent' --root /mnt/SDCARD/App/Varkiv --os linux --distribution onionos --arch armv7l --allow-http \
   --path save_dir=/mnt/SDCARD/App/Varkiv/saves --rom-root gba=/mnt/SDCARD/Roms/GBA)"
 [[ "${pair_output_b}" == 'paired=true config_saved=true' ]] || { echo "OnionOS target pairing failed" >&2; exit 1; }
-[[ "$(stat -f '%Lp' "${pair_config}" 2>/dev/null || stat -c '%a' "${pair_config}")" == 600 ]] || { echo "OnionOS target config permissions drifted" >&2; exit 1; }
+[[ "$(stat -c '%a' "${pair_config}" 2>/dev/null || stat -f '%Lp' "${pair_config}")" == 600 ]] || { echo "OnionOS target config permissions drifted" >&2; exit 1; }
 
 "${host_binary}" agent target-package --kind onionos --binary "${varkiv_binary}" --config "${pair_config}" --out "${package_root}" >/dev/null
 package_verification="$("${host_binary}" agent target-package verify --path "${package_root}" --json)"

@@ -147,7 +147,7 @@ pair_output="$(docker run --rm --name "${agent_container}" --network "${network_
   --path save_dir=/device/saves --path emulator_dir=/usr/local/bin --path core_dir=/opt/libretro \
   --rom-root snes=/device/roms/snes)"
 [[ "${pair_output}" == "paired=true config_saved=true" ]] || { echo "Agent pairing did not complete" >&2; exit 1; }
-[[ "$(stat -f '%Lp' "${agent_config}" 2>/dev/null || stat -c '%a' "${agent_config}")" == "600" ]] || { echo "Agent config permissions are not private" >&2; exit 1; }
+[[ "$(stat -c '%a' "${agent_config}" 2>/dev/null || stat -f '%Lp' "${agent_config}")" == "600" ]] || { echo "Agent config permissions are not private" >&2; exit 1; }
 
 sync_output="$(docker run --rm --name "${agent_container}" --network "${network_name}" \
 	--user "${container_user}" \

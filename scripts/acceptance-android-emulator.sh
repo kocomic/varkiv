@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+
+stage="argument-validation"
+report_error() {
+  local status=$?
+  local line=$1
+  printf 'Android AVD acceptance failed (stage=%s line=%s status=%s)\n' "${stage}" "${line}" "${status}" >&2
+  return "${status}"
+}
+trap 'report_error "$LINENO"' ERR
 
 usage() {
   cat <<'EOF'
@@ -38,6 +47,7 @@ done
 [[ "$port" =~ ^[0-9]+$ ]] && ((port >= 1024 && port <= 65535)) || { echo "invalid --port" >&2; exit 2; }
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+stage="toolchain-preflight"
 android_root="$repo_root/clients/android"
 sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
 [[ -n "$sdk_root" ]] || { echo "ANDROID_SDK_ROOT or ANDROID_HOME is required" >&2; exit 1; }
@@ -68,6 +78,7 @@ image_package="system-images;android-35;google_apis;$image_abi"
 image_root="$sdk_root/system-images/android-35/google_apis/$image_abi"
 [[ -f "$image_root/package.xml" ]] || { echo "missing pinned system image: $image_package" >&2; exit 1; }
 
+stage="fixture-setup"
 acceptance_root="$(mktemp -d "${TMPDIR:-/tmp}/varkiv-android-avd.XXXXXX")"
 chmod 700 "$acceptance_root"
 export ANDROID_AVD_HOME="$acceptance_root/avd"
@@ -100,6 +111,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+stage="server-build"
 cp "$repo_root/testdata/neutral/gba/recovery.gba" "$acceptance_root/library/gba/android-e2e.gba"
 cp "$repo_root/testdata/portable-standalone-v2/psp/standalone-v2.iso" "$acceptance_root/library/psp/android-e2e.iso"
 (
@@ -116,6 +128,7 @@ admin_token="android-avd-admin-$(openssl rand -hex 24 2>/dev/null || uuidgen | t
   --token "$admin_token" >"$acceptance_root/server.log" 2>&1 &
 server_pid=$!
 
+stage="server-readiness"
 ready=0
 for _ in $(seq 1 100); do
   if curl --silent --show-error --fail "http://127.0.0.1:$port/api/v1/health/ready" >/dev/null 2>&1; then
@@ -142,6 +155,7 @@ api_json() {
   curl "${args[@]}" "http://127.0.0.1:$port/api/v1/$path"
 }
 
+stage="server-catalog-setup"
 profile_id="android-avd-e2e-profile"
 profile_body="$(jq -nc --arg id "$profile_id" --arg arch "$image_abi" '{id:$id,name:"Disposable Android AVD",contract_version:1,target:"android",os_family:"android",distribution:"android-35",architecture:$arch,path_style:"android-uri",case_sensitive:true,max_path:1024,paths:{save_dir:"saves",rom_dir:"roms",config_dir:"config"},support_level:"package-tested",evidence:{scope:"isolated-avd"},enabled:true}')"
 api_json POST device-profiles "$profile_body" >/dev/null
@@ -186,6 +200,7 @@ pairing_code="$(api_json POST pairing-codes "$pairing_body" | jq -er '.code')"
 rom_base64="$(openssl base64 -A -in "$repo_root/testdata/neutral/gba/recovery.gba")"
 psp_rom_base64="$(openssl base64 -A -in "$repo_root/testdata/portable-standalone-v2/psp/standalone-v2.iso")"
 
+stage="avd-create"
 printf 'no\n' | "$avdmanager" create avd --name "$avd_name" --package "$image_package" --device pixel_2 >/dev/null
 emulator_port=""
 for candidate in $(seq 5588 2 5680); do
@@ -196,12 +211,14 @@ for candidate in $(seq 5588 2 5680); do
 done
 [[ -n "$emulator_port" ]] || { echo "no disposable emulator console port is available" >&2; exit 1; }
 emulator_serial="emulator-$emulator_port"
+stage="avd-boot"
 "$emulator" -avd "$avd_name" -port "$emulator_port" -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect >"$acceptance_root/emulator.log" 2>&1 &
 emulator_pid=$!
 
 booted=0
 for _ in $(seq 1 150); do
-  if [[ "$("$adb" -s "$emulator_serial" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]]; then
+  boot_state="$("$adb" -s "$emulator_serial" shell getprop sys.boot_completed 2>/dev/null || true)"
+  if [[ "${boot_state//$'\r'/}" == 1 ]]; then
     booted=1
     break
   fi
@@ -219,6 +236,7 @@ done
 "$adb" -s "$emulator_serial" shell settings put global animator_duration_scale 0
 "$adb" -s "$emulator_serial" reverse "tcp:$port" "tcp:$port" >/dev/null
 
+stage="android-instrumentation"
 (
   cd "$android_root"
   ./gradlew --no-daemon connectedDebugAndroidTest \
@@ -235,6 +253,7 @@ done
     -Pandroid.testInstrumentationRunnerArguments.e2e_ppsspp_rom_base64="$psp_rom_base64"
 )
 
+stage="result-verification"
 revision_count="$(api_json GET "save-streams/$gba_stream_id/revisions?limit=20&offset=0" | jq -er '.data | length')"
 psp_revision_count="$(api_json GET "save-streams/$psp_stream_id/revisions?limit=20&offset=0" | jq -er '.data | length')"
 session_summary="$(api_json GET 'sync/sessions?limit=20&offset=0' | jq -cer '[.data[] | {uploaded_count,downloaded_count,conflict_count,status}]')"
@@ -242,5 +261,6 @@ session_summary="$(api_json GET 'sync/sessions?limit=20&offset=0' | jq -cer '[.d
 [[ "$psp_revision_count" == 3 ]] || { echo "Android PPSSPP E2E revision count drifted" >&2; exit 1; }
 jq -e 'length == 3 and all(.[]; .status == "complete") and ([.[].uploaded_count] | add == 2) and ([.[].downloaded_count] | add == 2) and ([.[].conflict_count] | add == 2)' <<<"$session_summary" >/dev/null
 
+stage="report"
 jq -n --arg version "$(tr -d '\r\n' < "$repo_root/internal/buildinfo/VERSION")" --arg image "$image_package" --argjson revisions "$revision_count" --argjson psp_revisions "$psp_revision_count" '{format:"varkiv-android-avd-acceptance-v3",application_version:$version,api_level:35,system_image:$image,pairing:true,saf_provider:true,rom_inventory:{gba:true,psp:true},edition_match:{gba:true,psp:true},launch_catalog:{retroarch:true,ppsspp:true},save_contracts:{retroarch_single_file:true,ppsspp_product_code_directory:true},upload:2,download:2,conflict:2,revisions:{retroarch:$revisions,ppsspp:$psp_revisions},cleanup_scope:"one-use-avd-and-isolated-server",privacy:{user_library_read:false,user_device_selected:false,private_paths_reported:false,tokens_reported:false}}' >"$acceptance_root/report.json"
 printf 'android_avd_e2e=passed version=%s api=35 abi=%s paired=1 inventory=2 matched=2 launch=2 upload=2 download=2 conflict=2 retroarch_revisions=%s ppsspp_revisions=%s\n' "$(tr -d '\r\n' < "$repo_root/internal/buildinfo/VERSION")" "$image_abi" "$revision_count" "$psp_revision_count"

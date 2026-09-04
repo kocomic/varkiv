@@ -277,8 +277,8 @@ pair_output_b="$(run_wine_agent "${wine_prefix_pair}" 'Z:\work\varkiv.exe' agent
   --path 'save_dir=Z:\device-b\saves' --rom-root 'gba=Z:\device-b\roms\gba' | tr -d '\r')"
 [[ "${pair_output_b}" == "paired=true config_saved=true" ]] || { echo "Windows packaged Agent pairing did not complete" >&2; exit 1; }
 chmod 0600 "${agent_config_b_pair}"
-[[ "$(stat -f '%Lp' "${agent_config_a}" 2>/dev/null || stat -c '%a' "${agent_config_a}")" == 600 ]] || { echo "Windows Agent A config permissions are not private" >&2; exit 1; }
-[[ "$(stat -f '%Lp' "${agent_config_b_pair}" 2>/dev/null || stat -c '%a' "${agent_config_b_pair}")" == 600 ]] || { echo "Windows packaged Agent config permissions are not private" >&2; exit 1; }
+[[ "$(stat -c '%a' "${agent_config_a}" 2>/dev/null || stat -f '%Lp' "${agent_config_a}")" == 600 ]] || { echo "Windows Agent A config permissions are not private" >&2; exit 1; }
+[[ "$(stat -c '%a' "${agent_config_b_pair}" 2>/dev/null || stat -f '%Lp' "${agent_config_b_pair}")" == 600 ]] || { echo "Windows packaged Agent config permissions are not private" >&2; exit 1; }
 
 "${host_binary}" agent target-package --kind windows-handheld --binary "${windows_binary}" \
   --config "${agent_config_b_pair}" --windows-user 'FIXTURE\Player' \

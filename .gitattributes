@@ -5,3 +5,8 @@
 *.nds binary
 *.iso binary
 *.opk binary
+
+# Embedded API contracts are compared as protocol text by the Go test suite.
+# Keep their bytes identical when Actions checks the repository out on Windows.
+*.yaml text eol=lf
+*.yml text eol=lf

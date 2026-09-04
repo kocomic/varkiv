@@ -168,7 +168,7 @@ pair_output_b="$(run_target_pair agent pair --config /run/muos/storage/applicati
   --name 'muOS packaged Agent' --root /run/muos/storage/application/Varkiv --os linux --distribution muos --arch arm64 --allow-http \
   --path save_dir=/run/muos/storage/application/Varkiv/saves --rom-root gba=/run/muos/storage/roms/gba)"
 [[ "${pair_output_b}" == 'paired=true config_saved=true' ]] || { echo "muOS target pairing failed" >&2; exit 1; }
-[[ "$(stat -f '%Lp' "${pair_config}" 2>/dev/null || stat -c '%a' "${pair_config}")" == 600 ]] || { echo "muOS target config permissions drifted" >&2; exit 1; }
+[[ "$(stat -c '%a' "${pair_config}" 2>/dev/null || stat -f '%Lp' "${pair_config}")" == 600 ]] || { echo "muOS target config permissions drifted" >&2; exit 1; }
 
 "${host_binary}" agent target-package --kind muos --binary "${varkiv_binary}" --config "${pair_config}" --out "${package_root}" >/dev/null
 package_verification="$("${host_binary}" agent target-package verify --path "${package_root}" --json)"
