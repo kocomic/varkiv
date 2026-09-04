@@ -3,7 +3,7 @@ module varkiv
 go 1.26.6
 
 require (
-	golang.org/x/sys v0.37.0
+	golang.org/x/sys v0.47.0
 	modernc.org/sqlite v1.45.0
 )
 
