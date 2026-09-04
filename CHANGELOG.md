@@ -2,6 +2,10 @@
 
 Varkiv follows [Semantic Versioning](https://semver.org/). Only changes that affect users, deployment, public APIs, stored data, or supported clients belong here; implementation notes and one-off test evidence remain in commits and release artifacts.
 
+## 0.1.0-preview.5 - 2026-09-05
+
+- Made release acceptance checks independent of optional runner tooling so forbidden-pattern and reproducibility privacy checks cannot pass because a search command is missing.
+
 ## 0.1.0-preview.4 - 2026-09-05
 
 - Isolated anonymous `linux/amd64` and `linux/arm64` release proofs in separate runners, preventing Docker manifest-list digest reuse from masking a valid multi-architecture image.

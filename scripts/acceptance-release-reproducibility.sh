@@ -123,7 +123,7 @@ if "$repo_root/scripts/build-release-archives.sh" "$version" "$review_root/exist
   echo "error: release builder overwrote an existing output directory" >&2
   exit 1
 fi
-if rg -F "$review_root" "$first_log" "$second_log" >/dev/null; then
+if grep -F "$review_root" "$first_log" "$second_log" >/dev/null; then
   echo "error: release builder output exposed its host staging path" >&2
   exit 1
 fi

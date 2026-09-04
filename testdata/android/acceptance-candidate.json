@@ -1,7 +1,7 @@
 {
   "format": "varkiv-hardware-acceptance-v1",
   "generated_at": "2026-08-27T08:00:00Z",
-  "agent_version": "0.1.0-preview.4",
+  "agent_version": "0.1.0-preview.5",
   "host_os": "android",
   "host_architecture": "arm64",
   "target": "android",

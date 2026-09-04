@@ -32,7 +32,7 @@ printf '%s\n' '#!/usr/bin/env bash' \
   'count=$((count + 1))' \
   'printf "%d\n" "$count" >"$counter"' \
   'if ((count <= FAKE_FAILURES)); then echo "registry tag is not visible yet" >&2; exit 44; fi' \
-  'printf "%s\n" "${FAKE_OUTPUT:-Varkiv 0.1.0-preview.4}"' >"$fake_docker"
+  'printf "%s\n" "${FAKE_OUTPUT:-Varkiv 0.1.0-preview.5}"' >"$fake_docker"
 chmod 700 "$fake_docker"
 
 fake_sleep="$fake_bin/sleep"
@@ -53,7 +53,7 @@ run_verifier() {
     VARKIV_ANONYMOUS_PULL_ATTEMPTS=3 \
     VARKIV_ANONYMOUS_PULL_DELAY_SECONDS=0 \
     "$repository_root/scripts/verify-anonymous-container.sh" \
-      --image "$image_ref" --version 0.1.0-preview.4 "${verifier_platform[@]}"
+      --image "$image_ref" --version 0.1.0-preview.5 "${verifier_platform[@]}"
 }
 
 mkdir -m 700 "$test_root/state"
@@ -63,7 +63,7 @@ PATH="$fake_bin:$PATH" \
   FAKE_FAILURES=19 \
   FAKE_SLEEP_LOG="$default_sleep_log" \
   "$repository_root/scripts/verify-anonymous-container.sh" \
-    --image "$image_ref" --version 0.1.0-preview.4 >/dev/null 2>&1
+    --image "$image_ref" --version 0.1.0-preview.5 >/dev/null 2>&1
 [[ "$(<"$test_root/state/amd64")" == 20 && "$(<"$test_root/state/arm64")" == 20 ]] || {
   echo "anonymous default retry window drifted" >&2
   exit 1
@@ -114,7 +114,7 @@ PATH="$fake_bin:$PATH" \
   VARKIV_ANONYMOUS_PULL_ATTEMPTS=3 \
   VARKIV_ANONYMOUS_PULL_DELAY_SECONDS=0 \
   "$repository_root/scripts/verify-anonymous-container.sh" \
-    --image "$image_ref" --version 0.1.0-preview.4 >/dev/null 2>&1
+    --image "$image_ref" --version 0.1.0-preview.5 >/dev/null 2>&1
 mismatch_status=$?
 set -e
 [[ "$mismatch_status" == 1 && "$(<"$test_root/state/amd64")" == 1 ]] || {
@@ -125,14 +125,14 @@ set -e
 set +e
 VARKIV_ANONYMOUS_PULL_ATTEMPTS=31 \
   "$repository_root/scripts/verify-anonymous-container.sh" \
-    --image "$image_ref" --version 0.1.0-preview.4 >/dev/null 2>&1
+    --image "$image_ref" --version 0.1.0-preview.5 >/dev/null 2>&1
 invalid_attempts_status=$?
 VARKIV_ANONYMOUS_PULL_DELAY_SECONDS=61 \
   "$repository_root/scripts/verify-anonymous-container.sh" \
-    --image "$image_ref" --version 0.1.0-preview.4 >/dev/null 2>&1
+    --image "$image_ref" --version 0.1.0-preview.5 >/dev/null 2>&1
 invalid_delay_status=$?
 "$repository_root/scripts/verify-anonymous-container.sh" \
-  --image "$image_ref" --version 0.1.0-preview.4 --platform linux/386 >/dev/null 2>&1
+  --image "$image_ref" --version 0.1.0-preview.5 --platform linux/386 >/dev/null 2>&1
 invalid_platform_status=$?
 set -e
 [[ "$invalid_attempts_status" == 2 && "$invalid_delay_status" == 2 && "$invalid_platform_status" == 2 ]] || {

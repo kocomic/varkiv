@@ -47,12 +47,12 @@ for script_name in "${scripts[@]}"; do
   }
 done
 
-if rg -n '\.schema_version == [0-9]+' "${project_root}/scripts"/acceptance-*.sh; then
+if grep -En '\.schema_version == [0-9]+' "${project_root}/scripts"/acceptance-*.sh; then
   echo "acceptance scripts must compare schema_version with supported_schema_version" >&2
   exit 1
 fi
 
-if rg -n "stat -f '%Lp'.*2>/dev/null \\|\\| stat -c '%a'" "${project_root}/scripts"/acceptance-*.sh; then
+if grep -En "stat -f '%Lp'.*2>/dev/null \\|\\| stat -c '%a'" "${project_root}/scripts"/acceptance-*.sh; then
   echo "acceptance scripts must try GNU stat before BSD stat" >&2
   exit 1
 fi
