@@ -93,6 +93,9 @@ cleanup() {
   esac
   if ((status != 0)); then
     printf 'nas_compose_acceptance=failed stage=%s\n' "$stage" >&2
+    if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+      printf '::error title=NAS Compose acceptance::Failed at stage %s\n' "$stage" >&2
+    fi
   fi
   return "$status"
 }
@@ -101,6 +104,10 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 mkdir -p "$fixture_root/data" "$fixture_root/backups" "$fixture_root/restore"
+# Native Linux bind mounts enforce every parent directory's traversal bits.
+# Keep the private fixture root unlistable while allowing uid 10001 to reach
+# only the deliberately writable acceptance directories below it.
+chmod 0711 "$fixture_root"
 chmod 0777 "$fixture_root/data" "$fixture_root/backups" "$fixture_root/restore"
 token=$(openssl rand -hex 32)
 printf '%s\n' \
@@ -125,6 +132,13 @@ stage=preflight
 ./scripts/nas-preflight.sh --env-file "$env_file" --require-image-access >/dev/null
 
 stage=compose-projection
+if [[ "$published_compose" == true ]]; then
+  test "$(grep -Fc 'create_host_path: false' compose.ghcr.yaml)" -eq 2
+else
+  test "$(grep -Fc 'create_host_path: false' compose.yaml)" -eq 1
+  test "$(grep -Fc 'create_host_path: false' compose.nas.yaml)" -eq 1
+  test "$(grep -Fc 'create_host_path: false' compose.synology.yaml)" -eq 2
+fi
 config_json="$fixture_root/compose.json"
 "${compose[@]}" config --format json > "$config_json"
 synology_config_json="$fixture_root/synology-compose.json"
@@ -146,10 +160,10 @@ library = mounts['/library']
 assert app['image'] == os.environ['EXPECT_IMAGE'], app['image']
 assert data['type'] == 'bind' and data.get('read_only') is not True, data
 assert os.path.realpath(data['source']) == os.path.realpath(os.environ['EXPECT_DATA']), data
-assert data.get('bind', {}).get('create_host_path') is False, data
+assert data.get('bind', {}).get('create_host_path', False) is False, data
 assert library['type'] == 'bind' and library.get('read_only') is True, library
 assert os.path.realpath(library['source']) == os.path.realpath(os.environ['EXPECT_LIBRARY']), library
-assert library.get('bind', {}).get('create_host_path') is False, library
+assert library.get('bind', {}).get('create_host_path', False) is False, library
 if os.environ['EXPECT_PUBLISHED'] == 'true':
     assert 'build' not in app, app.get('build')
 else:

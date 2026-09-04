@@ -2687,10 +2687,11 @@ test('managed storage cleanup is reviewable, localized, quarantined, and recover
 });
 
 test('import workflow has no horizontal overflow at handheld width', async ({ page }) => {
-  // This deliberately traverses every primary route at six responsive
-  // breakpoints. Hosted runners are slower than local Chromium, so give this
-  // one exhaustive geometry sweep the Playwright slow-test budget.
-  test.slow();
+  // This deliberately traverses every primary route across desktop, handheld,
+  // adaptive, and localized layouts (more than 100 fresh navigations). Shared
+  // hosted runners can take well over the generic 30-second test budget; keep
+  // the coverage intact and bound this exhaustive sweep explicitly.
+  test.setTimeout(300_000);
   const geometryGameResponse = await page.request.post('/api/v1/games', {
     data: { default_title: 'Geometry Fixture', platform: 'gba', titles: {} },
   });
