@@ -104,7 +104,7 @@ jobs:
 
       - name: Install pinned Android platform for stable artifacts
         if: steps.release.outputs.channel == 'stable'
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+        run: ./scripts/install-android-sdk.sh 'platforms;android-36' 'build-tools;36.0.0'
 
       - name: Register non-native Linux execution
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4

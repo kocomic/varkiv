@@ -40,6 +40,7 @@ jobs:
           ./scripts/check-github-actions-pinning.sh
           ./scripts/test-github-actions-pinning.sh
           ./scripts/test-release-workflow.sh
+          ./scripts/test-install-android-sdk.sh
 
       - name: Verify release version identity
         if: runner.os == 'Linux'
@@ -226,7 +227,7 @@ jobs:
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
 
       - name: Install pinned Android platform
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+        run: ./scripts/install-android-sdk.sh 'platforms;android-36' 'build-tools;36.0.0'
 
       - name: Test strict Android release signature verification
         run: ./scripts/test-android-release-signatures.sh
@@ -293,7 +294,7 @@ jobs:
           cache-dependency-path: go.sum
 
       - name: Install pinned build platform and disposable emulator
-        run: sdkmanager 'platform-tools' 'emulator' 'platforms;android-36' 'build-tools;36.0.0' 'system-images;android-35;google_apis;x86_64'
+        run: ./scripts/install-android-sdk.sh 'platform-tools' 'emulator' 'platforms;android-36' 'build-tools;36.0.0' 'system-images;android-35;google_apis;x86_64'
 
       - name: Run paired upload, download, and conflict flow on an isolated AVD
         shell: bash

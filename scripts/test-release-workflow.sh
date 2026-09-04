@@ -27,6 +27,7 @@ for value in \
   'test "$PUBLIC_RELEASE_APPROVED" = true' \
   'test "$HARDWARE_RELEASE_APPROVED" = true' \
   "if: steps.release.outputs.channel == 'stable'" \
+  './scripts/install-android-sdk.sh' \
   'platforms: linux/amd64,linux/arm64' \
   'provenance: mode=max' \
   'sbom: true' \
@@ -41,6 +42,11 @@ for value in \
   '--latest'; do
   require_literal "$value"
 done
+
+if grep -Eq 'run: sdkmanager([[:space:]]|$)' "$workflow"; then
+  printf '%s\n' 'release workflow must use the bounded Android SDK installer' >&2
+  exit 1
+fi
 
 for secret_name in \
   ANDROID_RELEASE_KEYSTORE_B64 \
