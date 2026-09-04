@@ -5,7 +5,7 @@ html{scroll-behavior:smooth}
 body{margin:0;min-width:320px;min-height:100vh;background:#090a0d;font-size:var(--type-body);line-height:1.5;overflow-x:hidden}
 button,input,select{font:inherit}
 button{white-space:nowrap;line-height:1.2}
-button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,[data-tooltip][tabindex="0"]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .ambient{position:fixed;pointer-events:none;filter:blur(2px);opacity:.65;z-index:-1}
 .ambient-one{width:560px;height:560px;right:-180px;top:-260px;background:radial-gradient(circle,#433c78 0,transparent 68%)}
 .ambient-two{width:460px;height:460px;left:16%;bottom:-350px;background:radial-gradient(circle,#244536 0,transparent 70%)}
@@ -1031,3 +1031,88 @@ main,.view,.sync-layout,.sync-panel,.settings-overview,.settings-overview articl
 .web-player-dialog>article{grid-template-rows:auto auto auto auto minmax(0,1fr) auto}
 .web-player-dialog header{grid-row:1}.web-player-boundary{grid-row:2}.web-player-netplay{grid-row:3}.web-player-input-bar{grid-row:4}.web-player-frame{grid-row:5}.web-player-dialog footer{grid-row:6}
 @media(max-width:620px){.web-player-dialog>article{height:100dvh;min-height:100dvh}}
+
+/* Shared contextual help. The popover participates in the browser top layer so
+   hints opened from a native dialog are never trapped under its backdrop. */
+#ui-tooltip{
+  position:fixed;
+  inset:auto;
+  z-index:2147483647;
+  display:none;
+  box-sizing:border-box;
+  width:max-content;
+  max-width:min(300px,calc(100vw - 24px));
+  margin:0;
+  padding:10px 12px 11px;
+  border:2px solid var(--theme-border-strong);
+  border-left:4px solid var(--theme-purple);
+  border-radius:1px;
+  background:var(--theme-surface-raised);
+  color:var(--theme-text);
+  box-shadow:5px 5px 0 var(--theme-shadow);
+  font:650 14px/1.5 "SF Pro Text","PingFang SC",system-ui,sans-serif;
+  letter-spacing:0;
+  text-align:left;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  pointer-events:auto;
+  opacity:0;
+  transform:translateY(4px);
+  transition:opacity .12s ease,transform .12s ease;
+}
+#ui-tooltip:popover-open{
+  display:block;
+  opacity:1;
+  transform:none;
+}
+#ui-tooltip.tooltip-fallback-open{
+  display:block;
+  opacity:1;
+  transform:none;
+}
+#ui-tooltip[hidden]{display:none!important}
+
+/* A hint trigger is an explicit disclosure control on touch devices, not an
+   ornamental icon. Its accessible name and description remain in the DOM. */
+.hint-trigger{
+  display:inline-grid;
+  width:30px;
+  min-width:30px;
+  height:30px;
+  min-height:30px;
+  padding:0;
+  place-items:center;
+  border:1px solid var(--theme-border-strong);
+  border-radius:1px;
+  background:var(--theme-surface-inset);
+  color:var(--theme-text-secondary);
+  box-shadow:2px 2px 0 var(--theme-shadow);
+  font:900 14px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  cursor:help;
+  transition:border-color .12s ease,background-color .12s ease,color .12s ease,transform .12s ease,box-shadow .12s ease;
+}
+.hint-trigger:hover,
+.hint-trigger:focus-visible,
+.hint-trigger[aria-expanded="true"]{
+  border-color:var(--theme-purple);
+  background:var(--theme-purple-soft);
+  color:var(--theme-purple);
+}
+.hint-trigger:hover{
+  box-shadow:3px 3px 0 var(--theme-shadow);
+  transform:translate(-1px,-1px);
+}
+.hint-trigger:active{box-shadow:1px 1px 0 var(--theme-shadow);transform:none}
+.hint-trigger svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter}
+.field-title{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.field-title>.hint-trigger{flex:none;margin:-6px 0}
+.detected-source>span:first-child svg,.source-registry-mark svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter}
+
+@media(max-width:520px){
+  .hint-trigger{width:44px;min-width:44px;height:44px;min-height:44px}
+  #ui-tooltip{max-width:calc(100vw - 20px);padding:11px 12px;font-size:14px}
+  .detail-boundary{display:block;margin-top:10px;font-size:12px;line-height:1.45}
+}
+@media(prefers-reduced-motion:reduce){
+  #ui-tooltip,.hint-trigger{transition:none}
+}

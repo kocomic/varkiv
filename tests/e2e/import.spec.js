@@ -94,10 +94,10 @@ test('settings exposes verified browser assets as a compact localized runtime st
   await expect(status).toBeVisible();
 
   for (const [locale, title, badge, fileText, platformText] of [
-    ['zh-CN', '同源资源已核验', '已核验', '28 个文件', '10 个平台'],
-    ['zh-TW', '同源資源已驗證', '已驗證', '28 個檔案', '10 個平台'],
-    ['ja', '同一オリジンのリソースを検証済み', '検証済み', '28 ファイル', '10 プラットフォーム'],
-    ['en', 'Same-origin assets verified', 'Verified', '28 files', '10 platforms'],
+    ['zh-CN', '网页模拟器可用', '已核验', '28 个文件', '10 个平台'],
+    ['zh-TW', '網頁模擬器可用', '已驗證', '28 個檔案', '10 個平台'],
+    ['ja', 'Web エミュレーターを利用できます', '検証済み', '28 ファイル', '10 プラットフォーム'],
+    ['en', 'Web emulator available', 'Verified', '28 files', '10 platforms'],
   ]) {
     await page.locator('#locale').selectOption(locale);
     await expect(page.locator('#web-emulator-readiness-title')).toHaveText(title);
@@ -330,10 +330,10 @@ test('long explanations stay behind progressive disclosure without hiding action
   await locale.selectOption('zh-CN');
   await page.goto('/?e2e=disclosure-actions#sources');
   await expect(page.locator('#sources-view .safety-note')).toBeVisible();
-  await expect(page.locator('#sources-view .safety-note')).toContainText('源文件保持不变');
+  await expect(page.locator('#sources-view .safety-note')).toContainText('不修改源文件');
   await page.goto('/?e2e=disclosure-actions#packages');
   await expect(page.locator('#packages-view .action-footnote')).toBeVisible();
-  await expect(page.locator('#packages-view .action-footnote')).toContainText('不清理额外文件');
+  await expect(page.locator('#packages-view .action-footnote')).toContainText('不删除额外文件');
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/?e2e=disclosure-mobile#sync');
@@ -397,7 +397,7 @@ test('game merge is previewed, rejects drift atomically, and fits handheld scree
     await page.locator('#merge-game').click();
     await expect(page.locator('#merge-preview-editions')).toHaveText('1 + 2 → 3');
     await page.locator('#commit-game-merge').click();
-    await expect(page.locator('#notice')).toContainText('版本身份与存档空间保持不变');
+    await expect(page.locator('#notice')).toContainText('版本身份与存档关联保持不变');
     const merged = await (await request.get(`/api/v1/games/${target.id}`)).json();
     expect(merged.editions).toHaveLength(3);
     const identities = new Map(merged.editions.map(edition => [edition.id, edition.save_namespace]));
@@ -568,7 +568,7 @@ test('runtime-generated package controls localize immediately with grammatical c
   await page.locator('#add-package-template').click();
   await expect(page.locator('#template-count')).toHaveText('2 templates');
   expect(await page.evaluate(() => [
-    '1 个来源', '2 个来源', '1 项', '2 项', '将导入 1 个条目', '将导入 2 个条目',
+    '1 个来源', '2 个来源', '1 项', '2 项', '将导入 1 项', '将导入 2 项',
     '1 个文件 · 1 个指纹', '2 个文件 · 1 个指纹', '成功导入 1 项，跳过 0 项；复制 1 个 ROM 文件、1 个媒体文件。',
   ].map(value => globalThis.uiI18n.t(value)))).toEqual([
     '1 source', '2 sources', '1 item', '2 items', 'Import 1 item', 'Import 2 items',
@@ -707,7 +707,7 @@ test('web client loads every collection page and rejects pagination drift', asyn
     });
   });
   await page.goto('/?e2e=page-drift#library');
-  await expect(page.locator('#notice.error')).toContainText('资料库列表在分页加载期间发生变化，请重试。');
+  await expect(page.locator('#notice.error')).toContainText('资料库已更新，请重试。');
   await expect(page.locator('.management-row')).toHaveCount(0);
 });
 
@@ -852,7 +852,7 @@ test('signed direct-ROM preview commits the selected batch end to end', async ({
   await expect(page.locator('body')).not.toContainText(/\bWork\b/);
   await expect(page.locator('[data-library-mode="list"]')).toHaveClass(/active/);
   await expect(page.locator('#games.management-table .management-row')).toHaveCount(4);
-  await expect(page.locator('.management-head')).toContainText('ROM 与文件');
+  await expect(page.locator('.management-head')).toContainText('ROM');
   await expect(page.locator('.management-files .health-state.ready')).toHaveCount(3);
   await expect(page.locator('.management-files .health-state.unlinked')).toHaveCount(1);
   const rowHeights = await page.locator('.management-row').evaluateAll(rows => rows.map(row => Math.round(row.getBoundingClientRect().height)));
@@ -908,6 +908,8 @@ test('signed direct-ROM preview commits the selected batch end to end', async ({
   await expect(page.locator('#game-media .media-row').first()).toContainText('文件可用');
   const gameMediaRow = page.locator('#game-media .media-row').first();
   await gameMediaRow.locator('.edit-media-meta').click();
+  await expect(gameMediaRow.locator('.media-edit-panel small')).toHaveText('仅修改分类信息，不移动文件或更改归属。');
+  await expect(gameMediaRow.locator('.media-edit-panel small')).not.toHaveAttribute('data-tooltip', /.+/);
   await gameMediaRow.locator('.media-edit-kind').selectOption('poster');
   await gameMediaRow.locator('.media-edit-locale').selectOption('en');
   await gameMediaRow.locator('.media-edit-order').fill('3');
@@ -933,6 +935,8 @@ test('signed direct-ROM preview commits the selected batch end to end', async ({
   await expect(page.locator('#edition-dialog')).toBeVisible();
   const artifactRow = page.locator('.artifact-row').first();
   await artifactRow.locator('.edit-artifact').click();
+  await expect(artifactRow.locator('.artifact-edit-panel small')).toHaveText('仅修改分类与碟号，不改 ROM 文件。');
+  await expect(artifactRow.locator('.artifact-edit-panel small')).not.toHaveAttribute('data-tooltip', /.+/);
   await artifactRow.locator('.artifact-edit-role').selectOption('disc');
   await artifactRow.locator('.artifact-edit-disc').fill('2');
   await artifactRow.locator('.save-artifact-edit').click();
@@ -1152,7 +1156,7 @@ test('package workflow persists a profile, previews writes, renders safe config,
   await expect(page.locator('.plan-space')).toContainText('Destination free space');
   await expect(page.locator('#package-result')).not.toContainText(/需要留意|预计写入空间|目标可用空间/);
   await page.locator('#package-mode').selectOption('reference');
-  await expect(page.locator('#package-mode option:checked')).toHaveText('Relative-path metadata only · do not copy content');
+  await expect(page.locator('#package-mode option:checked')).toHaveText('Metadata only');
   await expect(page.locator('#summary-mode')).toHaveText('Relative-path metadata');
   await expect(page.locator('#reference-mode-note')).toBeVisible();
   await expect(page.locator('#reference-mode-note')).toContainText('Metadata only; content is not copied');
@@ -1217,7 +1221,7 @@ test('runtime catalog binds an edition to RetroArch and exports a portable launc
     serial: '请先为这个版本填写序列号',
     product: '请先为这个版本填写产品代码',
     splitTitle: '请先为这个版本填写 16 位十六进制标题标识',
-    directTitle: '请先为这个版本填写标题标识',
+    directTitle: '请先为这个版本填写 Title ID',
     valid: '',
   });
   for (const [locale, expected] of [
@@ -1298,9 +1302,9 @@ test('runtime catalog binds an edition to RetroArch and exports a portable launc
   expect(manifestText).not.toContain(path.resolve(__dirname, '../..'));
 
   await page.locator('#locale').selectOption('en');
-  await expect(page.locator('#preview-launch-binding')).toHaveText('Save & preview resolution');
-  await expect(page.locator('#save-launch-binding')).toHaveText('Save binding');
-  await expect(page.locator('#save-save-binding')).toHaveText('Save automatic sync binding');
+  await expect(page.locator('#preview-launch-binding')).toHaveText('Save and preview launch command');
+  await expect(page.locator('#save-launch-binding')).toHaveText('Save settings');
+  await expect(page.locator('#save-save-binding')).toHaveText('Save sync settings');
   await expect(page.locator('#edition-form > footer .primary')).toHaveText('Save edition');
   await expect(page.locator('.edition-launch-panel')).not.toContainText(/[\u3400-\u9fff]/);
   await expect(page.locator('.edition-save-panel')).not.toContainText(/[\u3400-\u9fff]/);
@@ -1327,10 +1331,12 @@ test('exact SNES bridge stays dormant until the device runtime is attested', asy
   await page.locator('#save-driver').selectOption('builtin-driver-retroarch');
   await expect(page.locator('#save-core-field')).toBeVisible();
   await page.locator('#save-core').selectOption('builtin-core-snes9x');
-  await expect(page.locator('#save-binding-summary')).toContainText('仅在设备代理核验模拟器与核心身份后参与同步');
+  await expect(page.locator('#save-binding-summary')).toHaveText('可共享；客户端核验模拟器与核心后才会参与同步。');
+  await expect(page.locator('#save-binding-summary')).not.toHaveAttribute('data-tooltip', /.+/);
   await page.locator('#save-save-binding').click();
-  await expect(page.locator('#save-binding-state')).toHaveText('待设备验真');
-  await expect(page.locator('#save-binding-summary')).toContainText('不会读取、下载或覆盖设备存档');
+  await expect(page.locator('#save-binding-state')).toHaveText('待设备核验');
+  await expect(page.locator('#save-binding-summary')).toHaveText('待客户端核验；模拟器或核心匹配前，不会读写设备存档。');
+  await expect(page.locator('#save-binding-summary')).not.toHaveAttribute('data-tooltip', /.+/);
 
   const streamsResponse = await page.request.get(`/api/v1/save-streams?edition_id=${edition.id}`);
   const bindingsResponse = await page.request.get(`/api/v1/save-bindings?edition_id=${edition.id}`);
@@ -1382,7 +1388,8 @@ test('custom runtime adapters are editable, built-ins stay read-only, and deleti
   await form.locator('[name="frontend_capabilities"]').fill('export=true\ncustom_theme=true');
   await form.locator('#save-runtime-item').click();
   const customFrontend = page.locator('#runtime-catalog button', { hasText: 'E2E Manga Frontend' });
-  await expect(customFrontend).toContainText('e2e-manga · pegasus');
+  await expect(customFrontend).toContainText('e2e-manga · 规范 v1');
+  await expect(customFrontend).not.toContainText('pegasus');
   await customFrontend.click();
   await expect(form.locator('[name="frontend_handler"]')).toHaveValue('pegasus');
   await form.locator('[data-close]').first().click();
@@ -1441,30 +1448,30 @@ test('custom runtime adapters are editable, built-ins stay read-only, and deleti
   await expect(page.locator('#runtime-evidence-level')).toHaveText('软件包已验证');
   await expect(page.locator('#runtime-evidence-scope')).toHaveText('软件夹具');
   await expect(page.locator('#runtime-evidence-date')).toHaveText('2026-08-27');
-  await expect(page.locator('#runtime-evidence-contract')).toHaveText('契约版本 v5');
+  await expect(page.locator('#runtime-evidence-contract')).toHaveText('规范版本 v5');
   await expect(form.locator('[name="frontend_capabilities"]')).toHaveValue(/neutral_manifest_v6=true/);
   await form.locator('[data-close]').first().click();
 
   await page.locator('#runtime-catalog button', { hasText: 'PCSX2' }).click();
   await expect(page.locator('#runtime-editor-readonly')).toBeVisible();
   await expect(page.locator('#runtime-evidence-level')).toHaveText('仅已收录');
-  await expect(page.locator('#runtime-evidence-summary')).toContainText('尚未验证软件包或真实设备');
+  await expect(page.locator('#runtime-evidence-summary')).toHaveText('仅收录，尚未验证软件包或真机。');
   await expect.poll(() => form.locator('input, select, textarea').evaluateAll(controls => controls.every(control => control.disabled))).toBe(true);
   await expect(form.locator('#save-runtime-item')).toBeHidden();
   await expect(form.locator('#delete-runtime-item')).toBeHidden();
   await form.locator('[data-close]').first().click();
 
   await page.locator('#locale').selectOption('zh-TW');
-  await expect(page.locator('#new-runtime-item')).toHaveText('新增執行適配');
+  await expect(page.locator('#new-runtime-item')).toHaveText('新增適配');
   await page.locator('#locale').selectOption('ja');
-  await expect(page.locator('#new-runtime-item')).toHaveText('ランタイムアダプターを新規作成');
+  await expect(page.locator('#new-runtime-item')).toHaveText('連携を追加');
   await page.locator('#locale').selectOption('en');
-  await expect(page.locator('#new-runtime-item')).toHaveText('Create runtime adapter');
+  await expect(page.locator('#new-runtime-item')).toHaveText('Add integration');
   await page.locator('#runtime-catalog button[data-runtime-id="builtin-frontend-pegasus"]').click();
   await expect(page.locator('#runtime-editor-title')).toHaveText('Pegasus · Frontend adapter details');
   await expect(form.locator('[name="name"]')).toHaveAttribute('placeholder', 'Example: Living-room RetroArch');
   await expect(form.locator('[name="source_format"]')).toHaveAttribute('placeholder', 'Example: pegasus-custom');
-  await expect(page.locator('#runtime-evidence-summary')).toContainText('does not claim real-hardware operation');
+  await expect(page.locator('#runtime-evidence-summary')).toHaveText('Package verified; real-device behavior is still unverified.');
   await expect(page.locator('#runtime-editor-dialog')).not.toContainText(/[\u3400-\u9fff]/);
   await form.locator('[data-close]').first().click();
   await page.locator('#locale').selectOption('zh-CN');
@@ -1501,11 +1508,13 @@ test('imported launch metadata stays inert until reviewed and applied', async ({
   await expect(page.locator('#runtime-import-hints')).toBeVisible();
   await expect(page.locator('.runtime-import-hint')).toHaveCount(2);
   await expect(page.locator('.runtime-import-hint.untrusted code')).toContainText('unsafe-frontend-command');
-  await expect(page.locator('.runtime-import-hint.untrusted')).toContainText('Varkiv 永远不会执行它');
+  await expect(page.locator('#runtime-import-hints')).toContainText('需人工核对，不会自动执行。');
+  await expect(page.locator('.runtime-import-hint.untrusted em')).toHaveAttribute('data-tooltip', '原始命令仅供核对，Varkiv 不会执行');
 
   await page.locator('#locale').selectOption('en');
   await expect(page.locator('#runtime-import-hints')).not.toContainText(/[\u3400-\u9fff]/);
-  await expect(page.locator('.runtime-import-hint.untrusted')).toContainText('never executed by Varkiv');
+  await expect(page.locator('#runtime-import-hints')).toContainText('Manual review required; nothing runs automatically.');
+  await expect(page.locator('.runtime-import-hint.untrusted em')).toHaveAttribute('data-tooltip', 'The original command is for review only; Varkiv does not execute it');
   await page.locator('#locale').selectOption('zh-CN');
 
   await page.locator('.runtime-import-hint.structured [data-review-runtime-hint]').click();
@@ -1553,14 +1562,14 @@ test('matching runtime hints use a signed atomic batch review', async ({ page })
 
   const batch = page.locator('#runtime-hint-batch-preview');
   await expect(batch).toBeVisible();
-  await expect(batch).toContainText('同一配置应用到同平台版本');
+  await expect(batch).toContainText('应用到同平台版本');
   await expect(batch.locator('header>b')).toHaveText('2');
   await expect(batch).toContainText('Android 掌机');
   await expect(batch).toContainText('mGBA');
   expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
 
   await page.locator('#locale').selectOption('en');
-  await expect(batch).toContainText('Apply one configuration to same-platform editions');
+  await expect(batch).toContainText('Apply to editions on this platform');
   await expect(batch).not.toContainText(/[\u3400-\u9fff]/);
   await page.locator('#locale').selectOption('zh-CN');
   await batch.locator('[data-commit-runtime-batch]').click();
@@ -1634,18 +1643,18 @@ test('browser player launches one verified Edition through a short-lived ROM cap
     await page.locator(`.game-detail[data-game="${game.id}"]`).first().click();
     const play = page.locator(`[data-web-play="${edition.id}"]`);
     await expect(play).toBeVisible();
-    await expect(play).toHaveText('浏览器运行');
+    await expect(play).toHaveText('网页运行');
     await play.click();
     await expect(page.locator('#web-player-dialog')).toBeVisible();
     await expect(page.locator('#web-player-title')).toHaveText(edition.display_title);
     await expect(page.locator('#web-player-runtime-state')).toHaveText('运行中');
     await expect(page.locator('#web-player-runtime-state')).toHaveAttribute('data-state', 'started');
-    await expect(page.locator('#web-player-input-state')).toContainText('手柄已连接 · 1');
+    await expect(page.locator('#web-player-input-state')).toContainText('已连接 1 个手柄');
     await expect(page.locator('#web-player-input-state')).toHaveAttribute('data-state', 'connected');
     await page.locator('.web-player-key-guide summary').click();
     await expect(page.locator('.web-player-key-panel')).toBeVisible();
     await expect(page.locator('.web-player-key-panel')).toContainText('键盘默认键位');
-    await expect(page.locator('.web-player-key-panel')).toContainText('控制设置中确认或修改映射');
+    await expect(page.locator('.web-player-key-panel')).toContainText('模拟器控制设置中调整映射');
     const playerFrame = page.frameLocator('#web-player-frame');
     await expect(playerFrame.locator('#e2e-player-ready')).toHaveText('Emulator loader ready');
     const playerURL = await page.locator('#web-player-frame').getAttribute('src');
@@ -1661,7 +1670,7 @@ test('browser player launches one verified Edition through a short-lived ROM cap
     expect(playerHTML).not.toContain('pad.id');
     expect(playerHTML).toContain('/api/v1/web-emulation/saves/');
     expect(playerHTML).toContain('正在准备网页模拟器');
-    await expect(page.locator('#web-player-dialog footer small')).toContainText('未生成时不会创建空存档');
+    await expect(page.locator('#web-player-dialog footer small')).toHaveText('生成存档后自动同步；不会创建空存档。');
     await page.setViewportSize({ width: 390, height: 844 });
     const frameBox = await page.locator('.web-player-frame').boundingBox();
     const footerBox = await page.locator('#web-player-dialog footer').boundingBox();
@@ -1745,10 +1754,10 @@ test('NES web netplay remains available without enabling the stable browser-play
     await page.setViewportSize({width: 390, height: 844});
     await page.goto('/?e2e=web-netplay-ui#library');
     for (const [localeValue, actionLabel, submitLabel] of [
-      ['zh-CN', '网页联机', '创建并运行'],
-      ['zh-TW', '網頁連線', '建立並執行'],
-      ['ja', 'Web ネットプレイ', '作成して起動'],
-      ['en', 'Web netplay', 'Create and play']
+      ['zh-CN', '网页联机', '创建房间'],
+      ['zh-TW', '網頁連線', '建立房間'],
+      ['ja', 'Web ネットプレイ', 'ルームを作成'],
+      ['en', 'Web netplay', 'Create room']
     ]) {
       await page.locator('#locale').selectOption(localeValue);
       await page.locator(`.game-detail[data-game="${game.id}"]`).first().click();
@@ -1772,7 +1781,7 @@ test('NES web netplay remains available without enabling the stable browser-play
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
     await page.locator('#web-netplay-form input[value="guest"]').check();
     await expect(page.locator('#web-netplay-invite-field')).toBeVisible();
-    await expect(page.locator('#web-netplay-form button[type="submit"]')).toContainText('验证并加入');
+    await expect(page.locator('#web-netplay-form button[type="submit"]')).toContainText('加入房间');
     await page.locator('#web-netplay-form input[value="host"]').check();
     await page.locator('#web-netplay-form input[name="display_name"]').fill('Player One');
     await page.locator('#web-netplay-form button[type="submit"]').click();
@@ -1847,20 +1856,20 @@ test('web netplay UI fails closed and presents localized join failures without l
     await page.locator(`[data-web-netplay="${edition.id}"]`).click();
     await page.locator('#web-netplay-form input[name="display_name"]').fill('Host');
     await page.locator('#web-netplay-form button[type="submit"]').click();
-    await expect(page.locator('#notice.error')).toHaveText('网页联机服务暂时不可用。');
+    await expect(page.locator('#notice.error')).toHaveText('网页联机服务暂不可用。');
     await expect(page.locator('#web-netplay-dialog')).toBeVisible();
     await expect(page.locator('#web-player-dialog')).not.toBeVisible();
     await page.locator('#web-netplay-form input[value="guest"]').check();
     await page.locator('#web-netplay-form input[name="display_name"]').fill('Guest');
     await page.locator('#web-netplay-form input[name="invite_code"]').fill(`${'b'.repeat(32)}.${'c'.repeat(64)}`);
     await page.locator('#web-netplay-form button[type="submit"]').click();
-    await expect(page.locator('#notice.error')).toHaveText('本地 ROM 或网页模拟器版本与房主不一致，无法加入。');
+    await expect(page.locator('#notice.error')).toHaveText('ROM 或网页模拟器版本与房主不一致。');
     await expect(page.locator('#web-player-dialog')).not.toBeVisible();
     await expect(page.locator('#web-netplay-dialog')).toBeVisible();
 
     joinFailure = {status: 401, code: 'invalid_invitation', message: 'invalid or expired invitation'};
     await page.locator('#web-netplay-form button[type="submit"]').click();
-    await expect(page.locator('#notice.error')).toHaveText('邀请口令无效或已经过期。');
+    await expect(page.locator('#notice.error')).toHaveText('邀请口令无效或已过期。');
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
     page.clientErrors = page.clientErrors.filter(message => ![
       'console: Failed to load resource: the server responded with a status of 503 (Service Unavailable)',
@@ -1890,7 +1899,7 @@ test('metadata entries whose ROM is missing are visible but disabled and skipped
   await expect(page.locator('#import-preview .status-pill.missing')).toHaveCount(1);
   await expect(page.locator('#import-preview .preview-item input')).toBeDisabled();
   await expect(page.locator('#import-summary')).toContainText('缺失并跳过');
-  await expect(page.locator('#import-preview')).toContainText('此条目会跳过');
+  await expect(page.locator('#import-preview .status-pill.missing')).toHaveAttribute('data-tooltip', /此条目会跳过/);
   await expect(page.locator('#commit-import')).toBeHidden();
   const savedState = page.locator('#import-source-state');
   await expect(savedState).toBeVisible();
@@ -2123,22 +2132,22 @@ test('transfer surface localizes into every supported interface language', async
   const previewButton = page.locator('#preview-import span');
 
   await locale.selectOption('zh-TW');
-  await expect(previewButton).toHaveText('掃描 ROM 並產生預覽');
+	await expect(previewButton).toHaveText('掃描並預覽');
   await expect(page.locator('.sidebar nav a[data-view]')).toHaveText(['資料庫', '平台目錄', '匯入來源', '整合包', '存檔同步', '系統設定']);
   await expect(page.locator('#sources-view h1')).toHaveText('匯入來源');
   await locale.selectOption('ja');
-  await expect(previewButton).toHaveText('ROM をスキャンしてプレビュー');
+  await expect(previewButton).toHaveText('スキャンして確認');
   await expect(page.locator('.sidebar nav a[data-view]')).toHaveText(['ライブラリ', '機種カタログ', 'インポート元', 'パッケージ', 'セーブ同期', 'システム設定']);
   await expect(page.locator('#sources-view h1')).toHaveText('インポート元');
   await locale.selectOption('en');
-  await expect(previewButton).toHaveText('Scan ROMs & preview');
+  await expect(previewButton).toHaveText('Scan and preview');
   await expect(page.locator('.sidebar nav a[data-view]')).toHaveText(['Library', 'Platform catalog', 'Import sources', 'Packages', 'Save sync', 'System settings']);
   await expect(page.locator('#sources-view h1')).toHaveText('Import sources');
   expect(await page.locator('[placeholder]').evaluateAll(elements => elements.map(element => element.getAttribute('placeholder')).filter(value => /[\u3400-\u9fff]/.test(value || '')))).toEqual([]);
   await expect(page.locator('#import-platform-preset option[value="gba"]')).toHaveText('Nintendo Game Boy Advance · gba');
-  await expect(page.locator('#source-registry-title')).toHaveText('Reusable scan configurations');
+  await expect(page.locator('#source-registry-title')).toHaveText('Saved sources');
   await page.locator('input[name="import_kind"][value="metadata"]').locator('xpath=..').click();
-  await expect(page.locator('#content-root-field')).toContainText('ROM content folder (optional)');
+  await expect(page.locator('#content-root-field')).toContainText('ROM folder (optional)');
   await expect(page.locator('#content-root-field')).not.toContainText(/[\u3400-\u9fff]/);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(await page.locator('.import-source-card, #import-form, .import-kind-choice, .import-kind-option').evaluateAll(elements => elements
@@ -2163,8 +2172,8 @@ test('transfer surface localizes into every supported interface language', async
   await expect(page.locator('[data-library-mode="list"]')).toHaveText(/List view/);
   await expect(page.locator('[data-library-mode="covers"]')).toHaveText(/Cover view/);
   await expect(page.locator('[data-library-mode="series"]')).toHaveText(/Series view/);
-  await expect(page.locator('.management-head')).toContainText('Name & series');
-  await expect(page.locator('.management-head')).toContainText('ROM & files');
+  await expect(page.locator('.management-head')).toContainText('Games');
+  await expect(page.locator('.management-head')).toContainText('ROM');
   await expect(page.locator('.management-files .health-state.ready').first()).toHaveText(/Files healthy/);
   await expect(page.locator('.management-files .health-state.unlinked')).toHaveText(/No ROM linked/);
   await page.locator('#new-game').click();
@@ -2184,7 +2193,7 @@ test('transfer surface localizes into every supported interface language', async
   await expect(page.locator('#merge-source option').first()).toContainText(/\d+ edition/);
   await page.locator('#game-media .edit-media-meta').first().click();
   await expect(page.locator('#game-media .media-edit-panel').first()).toContainText('Media type');
-  await expect(page.locator('#game-media .media-edit-panel').first()).toContainText('Only media type, language, and order change; ownership, file location, hash, and content stay untouched.');
+  await expect(page.locator('#game-media .media-edit-panel').first()).toContainText('Changes classification only; the file and its owner stay unchanged.');
   expect((await page.locator('#game-media .media-edit-panel').first().textContent()).replace('日本語', '')).not.toMatch(/[\u3400-\u9fff]/);
   await page.locator('#game-media .cancel-media-edit').first().click();
   expect((await page.locator('#game-media-panel').textContent()).replace('日本語', '')).not.toMatch(/[\u3400-\u9fff]/);
@@ -2197,7 +2206,7 @@ test('transfer surface localizes into every supported interface language', async
   await expect(page.locator('#edition-dialog')).toBeVisible();
   await page.locator('.artifact-row .edit-artifact').first().click();
   await expect(page.locator('.artifact-edit-panel').first()).toContainText('Resource type');
-  await expect(page.locator('.artifact-edit-panel').first()).toContainText('Only library semantics change; the ROM location and bytes stay untouched.');
+  await expect(page.locator('.artifact-edit-panel').first()).toContainText('Changes category and disc number only; the ROM file stays unchanged.');
   await expect(page.locator('.artifact-edit-panel').first()).not.toContainText(/[\u3400-\u9fff]/);
   await page.locator('#edition-dialog [data-close]').first().click();
   await locale.selectOption('ja');
@@ -2283,14 +2292,14 @@ test('save sync is a client status surface linked to ROM editions', async ({ pag
   await expect(page.locator('#sync-overview > div').first()).toHaveCSS('border-radius', '0px');
   await expect(page.locator('.sync-agent-icon')).toHaveCount(0);
   await expect(page.locator('.sync-agent-head .section-number')).toHaveText('01');
-  await expect(page.locator('.sync-agent-head')).toContainText('设备代理');
+  await expect(page.locator('.sync-agent-head')).toContainText('设备客户端');
   await expect(page.locator('#devices-view .sync-panel .section-number')).toHaveText(['02', '03', '04', '05']);
   await expect(page.locator('#sync-coverage .coverage-row')).toHaveCount(3);
   await expect(page.locator('#sync-coverage .coverage-head')).toHaveText(/游戏版本.*平台.*ROM 识别.*同步状态/);
   await expect(page.locator('#sync-coverage')).toContainText('1 / 1 个指纹');
   await expect(page.locator('#sync-coverage')).toContainText('Game Boy Advance');
   await expect(page.locator('#sync-coverage')).not.toContainText('命名空间');
-  await expect(page.locator('.agent-boundary')).toHaveText('存档传输由设备代理执行；Web 控制台不提供手工上传。');
+  await expect(page.locator('.agent-boundary')).toHaveText('无需手动上传存档');
   await expect(page.locator('#devices-view')).not.toContainText('varkiv agent run');
   await expect(page.locator('#pair-device-profile option')).toHaveCount(10);
   await expect(page.locator('#pair-device-profile option').first()).toHaveText('Android 掌机');
@@ -2322,8 +2331,16 @@ test('save sync is a client status surface linked to ROM editions', async ({ pag
   await page.locator('#issue-pairing-code').click();
   await expect(page.locator('#pairing-code-result code')).toHaveText('http://127.0.0.1:18080');
   await expect(page.locator('#pairing-code-result code')).not.toContainText('varkiv agent pair');
-  await expect(page.locator('#pairing-code-result small')).toHaveText('在 Android 设备代理中填写服务地址与配对码；令牌仅返回一次');
-  await expect(page.locator('#pairing-code-result button')).toHaveText('复制配对码');
+  for (const [localeValue, instruction, copyLabel] of [
+    ['zh-TW', '在 Android 裝置用戶端中填入服務位址與配對碼；權杖僅回傳一次', '複製配對碼'],
+    ['ja', 'Android デバイスクライアントにサービス URL とペアリングコードを入力します。トークンは一度だけ返されます。', 'ペアリングコードをコピー'],
+    ['en', 'Enter the service URL and pairing code in the Android device client; the token is returned only once', 'Copy pairing code'],
+    ['zh-CN', '在 Android 设备客户端中填写服务地址与配对码；令牌仅返回一次', '复制配对码'],
+  ]) {
+    await pairingLocale.selectOption(localeValue);
+    await expect(page.locator('#pairing-code-result small')).toHaveText(instruction);
+    await expect(page.locator('#pairing-code-result button')).toHaveText(copyLabel);
+  }
   await expect(page.locator('#sync-session-list')).toContainText('尚无同步会话');
 
   const manifestResponse = await page.request.get('/api/v1/sync/manifest');
@@ -2446,7 +2463,7 @@ test('ambiguous device ROM matching is previewed and confirmed without exposing 
   await expect(panel.locator('h2')).toHaveText('確認待ちのエディション対応');
   await page.locator('#locale').selectOption('en');
   await expect(panel.locator('h2')).toHaveText('Edition mappings requiring review');
-  await expect(panel).toContainText('The server never displays the device-local ROM filename, path, or hash.');
+  await expect(panel).toContainText('Shown only when a device identifier matches multiple editions. The server does not display ROM filenames, paths, or hashes.');
   await expect(panel).not.toContainText(/[\u3400-\u9fff]/);
   await page.locator('#locale').selectOption('zh-CN');
   const choice = panel.locator('.inventory-candidate', { hasText: '端到端匹配汉化版' });
@@ -2484,7 +2501,7 @@ test('real-device support readiness is localized, read-only, and responsive', as
   await expect(page.locator('#support-readiness-grid .support-gate')).toHaveCount(4);
   await expect(page.locator('#support-readiness-grid .support-gate > header > span svg')).toHaveCount(4);
   await expect.poll(() => page.locator('#support-readiness-grid .support-gate > header > span').evaluateAll(marks => marks.every(mark => mark.textContent.trim() === ''))).toBe(true);
-  await expect(page.locator('#support-readiness-state')).toHaveText('仍有真实设备门禁待完成');
+  await expect(page.locator('#support-readiness-state')).toHaveText('仍有真机验证待完成');
   await expect(page.locator('#support-readiness-grid')).toContainText('Windows + RetroArch 自动同步');
   await expect(page.locator('#support-readiness-grid')).toContainText('PPSSPP 驱动');
   const readinessDisclosure = page.locator('#support-readiness .context-disclosure');
@@ -2496,8 +2513,8 @@ test('real-device support readiness is localized, read-only, and responsive', as
   await readinessDisclosure.locator('summary').click();
 
   await page.locator('#locale').selectOption('en');
-  await expect(page.locator('#support-readiness-title')).toHaveText('Device support matrix');
-  await expect(page.locator('#support-readiness-state')).toHaveText('Real-device gates are still pending');
+  await expect(page.locator('#support-readiness-title')).toHaveText('Device verification matrix');
+  await expect(page.locator('#support-readiness-state')).toHaveText('Real-device verification is still pending');
   await expect(readinessDisclosure.locator('summary')).toHaveText('Evidence & privacy');
   await expect(page.locator('#support-readiness')).not.toContainText(/[\u3400-\u9fff]/);
 
@@ -2572,14 +2589,14 @@ test('privacy-minimized hardware report is reviewed, localized, and committed at
   await expect(page.locator('#acceptance-preview')).not.toContainText('private-core.dll');
 
   await page.locator('#locale').selectOption('en');
-  await expect(page.locator('#acceptance-title')).toHaveText('Device acceptance report');
+  await expect(page.locator('#acceptance-title')).toHaveText('Real-device verification');
   await expect(page.locator('#acceptance-preview h3')).toHaveText('Save sync-tested');
   await expect(page.locator('#hardware-acceptance-review')).not.toContainText(/[\u3400-\u9fff]/);
   await page.locator('#locale').selectOption('zh-CN');
   await page.locator('#acceptance-confirm').check();
   await page.locator('#commit-acceptance').click();
   await expect(page.locator('.acceptance-complete')).toContainText('真机证据已记录');
-  await expect(page.locator('.acceptance-complete')).toContainText('此报告仍有其他已安装模拟器待审查');
+  await expect(page.locator('.acceptance-complete')).toContainText('还有模拟器待核对');
   await expect(page.locator('#acceptance-file-name')).toHaveText('acceptance.json');
   await expect(page.locator('#acceptance-driver')).toHaveValue(standalone.id);
   await expect(page.locator('#acceptance-core-field')).toBeHidden();
@@ -2596,7 +2613,7 @@ test('privacy-minimized hardware report is reviewed, localized, and committed at
   }
 
   await page.locator('#locale').selectOption('en');
-  await expect(page.locator('#continue-acceptance')).toHaveText('Continue with another emulator');
+  await expect(page.locator('#continue-acceptance')).toHaveText('Continue review');
   await expect(page.locator('.acceptance-complete')).not.toContainText(/[\u3400-\u9fff]/);
   await page.locator('#locale').selectOption('zh-CN');
   await page.locator('#continue-acceptance').click();
@@ -2606,7 +2623,7 @@ test('privacy-minimized hardware report is reviewed, localized, and committed at
   await expect(page.locator('#acceptance-preview h3')).toHaveText('存档同步已验证');
   await page.locator('#acceptance-confirm').check();
   await page.locator('#commit-acceptance').click();
-  await expect(page.locator('.acceptance-complete')).toContainText('此报告中的已安装模拟器均已审查');
+  await expect(page.locator('.acceptance-complete')).toContainText('已核对全部模拟器');
   await expect(page.locator('#continue-acceptance')).toHaveCount(0);
   const standaloneResponse = await page.request.get(`/api/v1/emulator-drivers/${standalone.id}`);
   expect(standaloneResponse.ok()).toBe(true);

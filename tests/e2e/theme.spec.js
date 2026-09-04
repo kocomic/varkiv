@@ -47,7 +47,7 @@ test('theme controls localize and remain usable on a phone', async ({ page }) =>
   await openLibrary(page, 'light');
   await page.locator('#locale').selectOption('en');
   await expect(page.locator('.theme-switch')).toHaveAttribute('aria-label', 'Appearance');
-  await expect(page.locator('.theme-switch [data-theme-mode="system"]')).toHaveAttribute('title', 'Use system setting');
+  await expect(page.locator('.theme-switch [data-theme-mode="system"]')).toHaveAttribute('data-tooltip', 'Use system setting');
   await expect(page.locator('.theme-switch [data-theme-mode="light"]')).toHaveAttribute('aria-label', 'Light mode');
   await expect(page.locator('.theme-switch [data-theme-mode="dark"]')).toHaveAttribute('aria-label', 'Dark mode');
 
