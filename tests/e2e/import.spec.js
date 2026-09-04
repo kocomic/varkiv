@@ -2910,7 +2910,15 @@ test('import workflow has no horizontal overflow at handheld width', async ({ pa
           .map(element => element.textContent.trim().slice(0, 50)),
         clippedButtons: [...document.querySelectorAll('button')]
           .filter(element => element.offsetParent && element.textContent.trim())
+          .filter(element => element.dataset.contentOverflow !== 'ellipsis')
           .filter(element => element.scrollWidth > element.clientWidth + 1)
+          .map(element => element.textContent.trim().slice(0, 50)),
+        invalidContentOverflowContracts: [...document.querySelectorAll('[data-content-overflow="ellipsis"]')]
+          .filter(element => element.offsetParent)
+          .filter(element => {
+            const style = getComputedStyle(element);
+            return !element.dataset.tooltip || style.whiteSpace !== 'nowrap' || style.overflowX !== 'hidden' || style.textOverflow !== 'ellipsis';
+          })
           .map(element => element.textContent.trim().slice(0, 50)),
         wrappedControlText: [...document.querySelectorAll('.nav-item, .profile-option, .platform-row-actions button')]
           .filter(element => element.offsetParent)
@@ -2943,6 +2951,7 @@ test('import workflow has no horizontal overflow at handheld width', async ({ pa
         outsideLocalizedControls: [],
         wrappingButtons: [],
         clippedButtons: [],
+        invalidContentOverflowContracts: [],
         wrappedControlText: [],
       });
       }

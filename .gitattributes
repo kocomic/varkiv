@@ -1,0 +1,7 @@
+# ROM-shaped files in testdata are tiny, non-playable fixtures. Treat their
+# bytes as immutable on every checkout so Windows cannot rewrite LF to CRLF
+# and invalidate the explicit size/hash contracts used by import tests.
+*.gba binary
+*.nds binary
+*.iso binary
+*.opk binary

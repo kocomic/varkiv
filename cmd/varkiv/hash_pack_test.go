@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -36,7 +37,7 @@ func TestHashPackCLIExportPreviewImport(t *testing.T) {
 		t.Fatal(err)
 	}
 	info, err := os.Stat(packPath)
-	if err != nil || info.Size() == 0 || info.Mode().Perm() != 0o600 {
+	if err != nil || info.Size() == 0 || (runtime.GOOS != "windows" && info.Mode().Perm() != 0o600) {
 		t.Fatalf("pack output=%#v err=%v", info, err)
 	}
 	destinationDB := filepath.Join(t.TempDir(), "destination.db")
