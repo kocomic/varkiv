@@ -139,6 +139,13 @@ trap 'exit 143' TERM
 stage=asset-download
 node scripts/fetch-web-emulator-assets.mjs --directory "$asset_root"
 node scripts/verify-web-emulator-assets.mjs --directory "$asset_root" >/dev/null
+# The application runs as uid 10001. Docker Desktop's macOS file sharing can
+# mask missing traversal permissions, while a native Linux bind mount cannot.
+# These are pinned public runtime assets, so make only this ephemeral tree
+# readable after its hashes have been verified.
+chmod 0755 "$fixture_root"
+find "$asset_root" -type d -exec chmod 0755 {} +
+find "$asset_root" -type f -exec chmod 0644 {} +
 
 if docker volume inspect "$data_volume" >/dev/null 2>&1; then
   echo "error: generated Docker volume already exists" >&2

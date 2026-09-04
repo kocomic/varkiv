@@ -6,8 +6,6 @@ import { createServer } from 'node:net';
 import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
-import { chromium } from '@playwright/test';
-import { PNG } from 'playwright-core/lib/utilsBundle';
 import { sha256, verifyWebEmulatorAssets } from './lib/web-emulator-assets.mjs';
 
 const cliArguments = process.argv.slice(2);
@@ -25,6 +23,14 @@ never reads a user library, NAS mount, production database, media, or save.`);
   console.error(`error: unexpected arguments: ${cliArguments.join(' ')}`);
   process.exit(2);
 }
+
+// Keep --help and invalid-argument checks dependency-free. This lets the
+// cross-platform CLI contract run before npm ci without weakening the real
+// browser acceptance, which still imports the locked Playwright packages.
+const [{ chromium }, { PNG }] = await Promise.all([
+  import('@playwright/test'),
+  import('playwright-core/lib/utilsBundle'),
+]);
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const manifestPath = join(projectRoot, 'testdata', 'web-emulation', 'fixtures.json');
