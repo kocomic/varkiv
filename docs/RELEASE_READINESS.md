@@ -28,6 +28,12 @@ version="$(tr -d '\r\n' < internal/buildinfo/VERSION)"
 
 发布产物必须带版本、SHA-256、第三方 NOTICE 和可追溯来源；amd64/arm64 容器镜像发布到 GHCR，并提供固定到 manifest digest 的 Compose、SBOM 和 provenance。仓库及包内不得包含 ROM、BIOS、固件、密钥、token、数据库或宿主绝对路径。
 
+`vX.Y.Z-后缀` 标签进入预览发布：自动执行软件、浏览器、导入导出、目标整合包、容器和 NAS Compose 门禁，发布唯一的版本镜像标签，并在未登录 GHCR 的条件下分别运行 amd64/arm64 镜像。预览发布不伪造 Android 正式签名，也不要求把尚未完成的真机门禁标成通过。
+
+不带后缀的 `vX.Y.Z` 稳定标签还要求仓库变量 `PUBLIC_RELEASE_APPROVED=true`、`HARDWARE_RELEASE_APPROVED=true`，以及四项 Android 签名 secret：`ANDROID_RELEASE_KEYSTORE_B64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`。缺少任一门禁会终止发布，不会降级为预览或无签名 APK。
+
+发布工作流拒绝替换已经存在的 GitHub Release。GHCR 只发布不可变的 `:<version>` 标签；长期部署使用 Release 内记录的 manifest digest，`edge` 仅由 main 分支 CI 维护。Release 同时附带目标二进制包、第三方许可证包、应用 SBOM、digest Compose、环境模板、精确镜像引用和 `SHA256SUMS`，并为镜像与文件生成 GitHub attestation。
+
 ## 外部门禁
 
 ### E1：真实设备

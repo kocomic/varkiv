@@ -5,6 +5,19 @@ umask 077
 
 repository_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$repository_root"
+stage=setup
+
+report_failure() {
+  status=$?
+  if ((status != 0)); then
+    printf 'target_package_acceptance=failed stage=%s\n' "$stage" >&2
+    if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+      printf '::error title=Target package acceptance::Failed at stage %s\n' "$stage" >&2
+    fi
+  fi
+  return "$status"
+}
+trap report_failure EXIT
 
 usage() {
   cat <<'EOF'
@@ -89,8 +102,10 @@ accept_package() {
   root_dir=$5
   config="$config_root/$kind.json"
   package="$package_root/$kind"
+  stage="package-$kind-config"
   write_config "$kind" "$target" "$profile" "$config" "$root_dir"
 
+  stage="package-$kind-build"
   if [ "$kind" = windows-handheld ]; then
     "$host_binary" agent target-package \
       --kind "$kind" \
@@ -107,6 +122,7 @@ accept_package() {
       --out "$package"
   fi
 
+  stage="package-$kind-verify"
   verification=$("$host_binary" agent target-package verify --path "$package" --json)
   printf '%s' "$verification" | grep -Fq '"verified":true'
   printf '%s' "$verification" | grep -Fq "\"kind\":\"$kind\""
@@ -119,6 +135,7 @@ accept_package() {
   grep -Fq '"sensitive": true' "$manifest"
   grep -Fq "\"kind\": \"$kind\"" "$manifest"
 
+  stage="package-$kind-privacy"
   for metadata in "$manifest" "$guide"; do
     for private_value in "$fixture_token" "$fixture_origin" "$acceptance_root" "fixture-$kind" "$profile"; do
       if grep -Fq "$private_value" "$metadata"; then
@@ -134,10 +151,18 @@ accept_package() {
     fi
   done
 
-  copied_binary=$(find "$package" -type f \( -name varkiv -o -name varkiv.exe \) -print -quit)
+  stage="package-$kind-binary"
+  copied_binary=""
+  while IFS= read -r candidate; do
+    if cmp -s "$binary" "$candidate"; then
+      copied_binary=$candidate
+      break
+    fi
+  done < <(find "$package" -type f \( -name varkiv -o -name varkiv.exe \) -print)
   test -n "$copied_binary"
   LC_ALL=C grep -aFq "$version" "$copied_binary"
 
+  stage="package-$kind-scripts"
   while IFS= read -r shell_script; do
     sh -n "$shell_script"
     if grep -Fq 'eval ' "$shell_script"; then
@@ -146,6 +171,7 @@ accept_package() {
     fi
   done < <(find "$package" -type f -name '*.sh' -print)
 
+  stage="package-$kind-count"
   file_count=$(find "$package" -type f | wc -l | tr -d ' ')
   package_count=$((package_count + 1))
   total_files=$((total_files + file_count))
@@ -163,5 +189,6 @@ accept_package onionos onionos builtin-device-onionos "$bin_root/varkiv-linux-ar
 test "$package_count" -eq 8
 test "$(find "$bin_root" -maxdepth 1 -type f | wc -l | tr -d ' ')" -eq 6
 
+stage=complete
 printf 'target_package_acceptance=passed version=%s architectures=5 packages=%d files=%d\n' "$version" "$package_count" "$total_files"
 printf 'review_root=%s\n' "$acceptance_root"

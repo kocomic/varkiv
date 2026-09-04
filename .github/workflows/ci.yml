@@ -39,6 +39,7 @@ jobs:
         run: |
           ./scripts/check-github-actions-pinning.sh
           ./scripts/test-github-actions-pinning.sh
+          ./scripts/test-release-workflow.sh
 
       - name: Verify release version identity
         if: runner.os == 'Linux'
@@ -92,8 +93,13 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Test
+      - name: Test with race detector
+        if: runner.os != 'Windows'
         run: go test -race -coverprofile=coverage.out ./...
+
+      - name: Test Windows compatibility
+        if: runner.os == 'Windows'
+        run: go test -count=1 -coverprofile=coverage.out ./...
 
       - name: Run retained-output import/export round trip
         if: runner.os == 'Linux'

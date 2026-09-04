@@ -30,7 +30,8 @@ let created = false;
 try {
   await mkdir(staging, { mode: 0o700 });
   created = true;
-  for (const asset of manifest.emulatorjs.assets) {
+  let nextAsset = 0;
+  const fetchAsset = async asset => {
     const target = join(staging, ...asset.path.split('/'));
     await mkdir(dirname(target), { recursive: true, mode: 0o700 });
     let bytes;
@@ -53,7 +54,15 @@ try {
     }
     if (failure) throw new Error(`could not fetch pinned asset ${asset.path}: ${failure.message}`);
     await writeFile(target, bytes, { mode: 0o600, flag: 'wx' });
-  }
+  };
+  const worker = async () => {
+    while (nextAsset < manifest.emulatorjs.assets.length) {
+      const asset = manifest.emulatorjs.assets[nextAsset++];
+      await fetchAsset(asset);
+    }
+  };
+  const workerCount = Math.min(6, manifest.emulatorjs.assets.length);
+  await Promise.all(Array.from({ length: workerCount }, worker));
   const report = verifyWebEmulatorAssets(staging, manifest);
   await rename(staging, destination);
   created = false;

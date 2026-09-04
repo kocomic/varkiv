@@ -50,6 +50,17 @@ apksigner_command="${APKSIGNER:-}"
 if [[ -z "$apksigner_command" ]]; then
   apksigner_command="$(command -v apksigner || true)"
 fi
+if [[ -z "$apksigner_command" ]]; then
+  build_tools_version="${ANDROID_BUILD_TOOLS_VERSION:-36.0.0}"
+  for sdk_root in "${ANDROID_SDK_ROOT:-}" "${ANDROID_HOME:-}"; do
+    [[ -n "$sdk_root" ]] || continue
+    candidate="$sdk_root/build-tools/$build_tools_version/apksigner"
+    if [[ -f "$candidate" && -x "$candidate" ]]; then
+      apksigner_command="$candidate"
+      break
+    fi
+  done
+fi
 [[ -n "$apksigner_command" && -x "$apksigner_command" ]] || { echo "error: apksigner is unavailable; set APKSIGNER to its executable path" >&2; exit 1; }
 
 "$apksigner_command" verify --verbose --print-certs "$apk" >/dev/null

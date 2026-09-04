@@ -1,6 +1,6 @@
 # Quickstart
 
-This guide starts Varkiv from a source checkout. It deliberately does not use a placeholder container-registry address. Use a published image only after the project documents its real image name and immutable digest.
+This guide starts Varkiv either from the released `ghcr.io/kocomic/varkiv` image or from a source checkout. Release deployment files pin the image by manifest digest rather than relying on a mutable tag.
 
 Varkiv never needs write access to the external ROM directory. Use ROMs and BIOS files only when you have the right to do so, and keep an independent backup of them.
 
@@ -43,7 +43,38 @@ curl --fail --silent --show-error \
 
 Open <http://127.0.0.1:18080>.
 
-## Option B: persistent library with Docker Compose
+## Option B: persistent library from a released image
+
+Each tagged GitHub Release contains a Compose file with an immutable GHCR manifest digest, an environment template, the exact image reference, and `SHA256SUMS`. The release workflow rejects the release unless anonymous pulls of both `linux/amd64` and `linux/arm64` run the expected Varkiv version.
+
+Choose a version from [Varkiv Releases](https://github.com/kocomic/varkiv/releases), omit the leading `v`, and download its deployment files:
+
+```bash
+version='<release version>'
+base_url="https://github.com/kocomic/varkiv/releases/download/v${version}"
+curl --fail --location --remote-name "$base_url/varkiv-${version}-compose.yaml"
+curl --fail --location --remote-name "$base_url/varkiv-${version}-env.example"
+curl --fail --location --remote-name "$base_url/varkiv-${version}-container-image.txt"
+curl --fail --location --remote-name "$base_url/SHA256SUMS"
+sha256sum --ignore-missing --check SHA256SUMS
+cp "varkiv-${version}-env.example" .env
+```
+
+Open `.env` in a private local editor. Set `ROM_LIBRARY_PATH` to an existing absolute ROM directory, `VARKIV_DATA_PATH` to an existing private directory on a local ext4/btrfs/ZFS volume, and `GAME_LIBRARY_TOKEN` to the output of `openssl rand -hex 32`. Do not place SQLite state on SMB, NFS, WebDAV, SSHFS, or another network filesystem. Keep the ROM mount read-only.
+
+Validate, pull, and start the exact release:
+
+```bash
+compose_file="varkiv-${version}-compose.yaml"
+docker compose --env-file .env -f "$compose_file" config --quiet
+docker compose --env-file .env -f "$compose_file" pull
+docker compose --env-file .env -f "$compose_file" up -d
+docker compose --env-file .env -f "$compose_file" ps
+```
+
+Verify readiness with `curl --fail http://127.0.0.1:8080/api/v1/health/ready`, then follow the import and backup guidance below. Upgrades use a new release's Compose and environment template only after a backup; do not replace the digest inside an existing release file.
+
+## Option C: persistent library built from source
 
 Use this path for a real personal library. It builds the current checkout locally and stores application state in the Docker named volume `varkiv-data`. The external ROM directory is mounted read-only.
 

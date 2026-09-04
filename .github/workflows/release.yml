@@ -1,4 +1,4 @@
-name: Attested preview release
+name: Publish release
 
 on:
   push:
@@ -14,8 +14,9 @@ concurrency:
 
 jobs:
   release:
-    name: Build, attest, and publish
+    name: Verify, publish, and attest
     runs-on: ubuntu-latest
+    timeout-minutes: 120
     permissions:
       contents: write
       packages: write
@@ -31,6 +32,49 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Establish immutable release identity
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANDROID_RELEASE_KEYSTORE_B64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          version="${GITHUB_REF_NAME#v}"
+          source_version="$(tr -d '\r\n' < internal/buildinfo/VERSION)"
+          test "$source_version" = "$version"
+          test "$(git rev-parse "${GITHUB_REF_NAME}^{commit}")" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          test -f LICENSE
+          test -s docs/THIRD_PARTY_NOTICES.md
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "release already exists; refusing to replace published assets" >&2
+            exit 1
+          fi
+          channel=stable
+          prerelease=false
+          if [[ "$version" == *-* ]]; then
+            channel=preview
+            prerelease=true
+          else
+            test "$PUBLIC_RELEASE_APPROVED" = true
+            test "$HARDWARE_RELEASE_APPROVED" = true
+            test -n "$ANDROID_RELEASE_KEYSTORE_B64"
+            test -n "$ANDROID_KEYSTORE_PASSWORD"
+            test -n "$ANDROID_KEY_ALIAS"
+            test -n "$ANDROID_KEY_PASSWORD"
+          fi
+          ./scripts/check-version.sh
+          {
+            echo "version=$version"
+            echo "channel=$channel"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Set up patched Go toolchain
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
@@ -43,7 +87,8 @@ jobs:
           node-version: '24.x'
           cache: npm
 
-      - name: Set up JDK for signed Android release
+      - name: Set up JDK for stable Android artifacts
+        if: steps.release.outputs.channel == 'stable'
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
           distribution: temurin
@@ -53,53 +98,36 @@ jobs:
             clients/android/*.gradle.kts
             clients/android/gradle/wrapper/gradle-wrapper.properties
 
-      - name: Set up Android SDK
+      - name: Set up Android SDK for stable artifacts
+        if: steps.release.outputs.channel == 'stable'
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
 
-      - name: Register ARM64 and ARMv7 user-mode execution
+      - name: Install pinned Android platform for stable artifacts
+        if: steps.release.outputs.channel == 'stable'
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+
+      - name: Register non-native Linux execution
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
         with:
           platforms: arm64,arm
 
-      - name: Install pinned Android platform
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
-
-      - name: Enforce maintainer release gates and version identity
+      - name: Verify source, contracts, and Go code
         shell: bash
-        env:
-          ANDROID_RELEASE_KEYSTORE_B64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_B64 }}
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
-          test "$PUBLIC_RELEASE_APPROVED" = true
-          test "$HARDWARE_RELEASE_APPROVED" = true
-          test -f LICENSE
-          test -s docs/THIRD_PARTY_NOTICES.md
-          test -n "$ANDROID_RELEASE_KEYSTORE_B64"
-          test -n "$ANDROID_KEYSTORE_PASSWORD"
-          test -n "$ANDROID_KEY_ALIAS"
-          test -n "$ANDROID_KEY_PASSWORD"
-          expected="${GITHUB_REF_NAME#v}"
-          source_version="$(tr -d '\r\n' < internal/buildinfo/VERSION)"
-          test "$source_version" = "$expected"
-          ./scripts/check-version.sh
-
-      - name: Verify source and dependencies
-        run: |
           ./scripts/check-source-hygiene.sh
           ./scripts/test-source-hygiene.sh
           ./scripts/check-github-actions-pinning.sh
           ./scripts/test-github-actions-pinning.sh
+          ./scripts/test-release-workflow.sh
           ./scripts/check-version.sh
           ./scripts/check-docs.py
           ./scripts/test-render-container-deployment.sh
           ./scripts/test-acceptance-device-cli.sh
+          ./scripts/test-nas-preflight.sh
           ./scripts/test-android-release-signatures.sh
           go mod verify
-          ./scripts/check-third-party-notices.sh --all
+          ./scripts/check-third-party-notices.sh --go
           go test -race ./...
           go vet ./...
           go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
@@ -109,7 +137,6 @@ jobs:
           node --check scripts/lib/web-emulator-assets.mjs
           node --check scripts/fetch-web-emulator-assets.mjs
           node --check scripts/verify-web-emulator-assets.mjs
-          node --check scripts/test-web-emulator-assets.mjs
           node --check scripts/acceptance-web-emulation.mjs
           node --check scripts/fetch-web-netplay-assets.mjs
           node --check scripts/verify-web-netplay-assets.mjs
@@ -120,82 +147,42 @@ jobs:
           node scripts/test-web-emulator-assets.mjs
           ruby -e "require 'yaml'; %w[internal/server/openapi.yaml internal/server/multiplayer_openapi.yaml].each { |path| spec=YAML.load_file(path); abort \"invalid OpenAPI contract: #{path}\" unless spec['openapi']=='3.1.0' && spec['paths'].is_a?(Hash) && spec.dig('components','schemas').is_a?(Hash) }"
 
-      - name: Run retained-output import/export acceptance
-        shell: bash
-        run: ./scripts/acceptance-roundtrip.sh
-
-      - name: Run pinned open-ROM import/export acceptance
-        shell: bash
-        run: ./scripts/acceptance-open-rom-roundtrip.sh
-
-      - name: Run private target-package acceptance
+      - name: Verify browser client and API references
         shell: bash
         run: |
-          ./scripts/test-target-package-acceptance-arguments.sh
-          ./scripts/acceptance-target-packages.sh
-
-      - name: Prove release archive reproducibility
-        shell: bash
-        run: ./scripts/acceptance-release-reproducibility.sh
-
-      - name: Run ROCKNIX PPSSPP multi-file Agent acceptance
-        shell: bash
-        run: |
-          docker build --tag varkiv:release-acceptance .
-          VARKIV_PPSSPP_AGENT_IMAGE=varkiv:release-acceptance ./scripts/acceptance-device-ppsspp-save.sh
-
-      - name: Verify published-image NAS Compose and recovery workflow
-        shell: bash
-        run: ./scripts/acceptance-compose-nas.sh --image varkiv:release-acceptance --port 18187 --skip-build --published-compose
-
-      - name: Run SteamOS and Bazzite RetroArch Agent acceptance
-        shell: bash
-        env:
-          VARKIV_STEAMOS_AGENT_IMAGE: varkiv:release-acceptance
-        run: ./scripts/acceptance-device-steamos-save.sh
-
-      - name: Run Windows generated-package Agent process acceptance
-        shell: bash
-        env:
-          VARKIV_WINDOWS_SERVER_IMAGE: varkiv:release-acceptance
-        run: ./scripts/acceptance-device-windows-save.sh
-
-      - name: Run KNULLI packaged service and gameStop hook acceptance
-        shell: bash
-        env:
-          VARKIV_KNULLI_SERVER_IMAGE: varkiv:release-acceptance
-        run: ./scripts/acceptance-device-knulli-hooks.sh
-
-      - name: Run muOS packaged application-entry acceptance
-        shell: bash
-        env:
-          VARKIV_MUOS_SERVER_IMAGE: varkiv:release-acceptance
-        run: ./scripts/acceptance-device-muos-apps.sh
-
-      - name: Run OnionOS ARMv7 packaged App-entry acceptance
-        shell: bash
-        env:
-          VARKIV_ONIONOS_SERVER_IMAGE: varkiv:release-acceptance
-        run: ./scripts/acceptance-device-onionos-apps.sh
-
-      - name: Run browser end-to-end acceptance
-        run: |
+          set -euo pipefail
           npm ci
           npm audit
+          ./scripts/check-third-party-notices.sh --node
+          ./scripts/test-third-party-notices.sh
           ./scripts/check-protocol-schemas.sh
           ./scripts/build-api-docs.sh "$RUNNER_TEMP/varkiv-api-docs"
           npx playwright install --with-deps chromium
           npm run test:e2e
-          ./scripts/acceptance-compose-web-netplay.sh
 
-      - name: Build reproducible target archives
+      - name: Verify imports, device packages, and reproducible archives
         shell: bash
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
-          ./scripts/build-release-archives.sh "$version" dist
+          ./scripts/acceptance-roundtrip.sh
+          ./scripts/acceptance-open-rom-roundtrip.sh
+          ./scripts/test-target-package-acceptance-arguments.sh
+          ./scripts/acceptance-target-packages.sh
+          ./scripts/acceptance-release-reproducibility.sh
 
-      - name: Test and build signed Android release
+      - name: Verify hardened container and published Compose
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/acceptance-container.sh --image varkiv:release-acceptance --port 18185
+          ./scripts/acceptance-compose-nas.sh --image varkiv:release-acceptance --port 18187 --skip-build --published-compose
+
+      - name: Build reproducible target archives
+        shell: bash
+        run: ./scripts/build-release-archives.sh '${{ steps.release.outputs.version }}' dist
+
+      - name: Build signed Android artifacts for a stable release
+        if: steps.release.outputs.channel == 'stable'
         shell: bash
         env:
           ANDROID_RELEASE_KEYSTORE_B64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_B64 }}
@@ -205,7 +192,7 @@ jobs:
         run: |
           set -euo pipefail
           keystore="$RUNNER_TEMP/varkiv-release-keystore"
-          cleanup() { rm -f -- "$keystore"; }
+          cleanup() { shred -u -- "$keystore" 2>/dev/null || true; }
           trap cleanup EXIT
           printf '%s' "$ANDROID_RELEASE_KEYSTORE_B64" | base64 --decode > "$keystore"
           chmod 600 "$keystore"
@@ -213,6 +200,7 @@ jobs:
           export ANDROID_KEYSTORE_PATH="$keystore"
           (
             cd clients/android
+            ../../scripts/check-third-party-notices.sh --android
             ./gradlew --no-daemon testReleaseUnitTest lintRelease bundleRelease assembleRelease
           )
           apk=clients/android/app/build/outputs/apk/release/app-release.apk
@@ -224,26 +212,24 @@ jobs:
           unzip -Z1 "$aab" | grep -Fx 'base/assets/THIRD_PARTY_NOTICES.md'
           unzip -Z1 "$aab" | grep -Fx 'base/assets/Apache-2.0.txt'
           ./scripts/verify-android-release-signatures.sh --apk "$apk" --aab "$aab"
-          version="${GITHUB_REF_NAME#v}"
-          install -m 0644 "$apk" "dist/varkiv-${version}-android.apk"
-          install -m 0644 "$aab" "dist/varkiv-${version}-android.aab"
+          install -m 0644 "$apk" "dist/varkiv-${{ steps.release.outputs.version }}-android.apk"
+          install -m 0644 "$aab" "dist/varkiv-${{ steps.release.outputs.version }}-android.aab"
 
       - name: Generate application SBOM
+        shell: bash
         run: |
-          version="${GITHUB_REF_NAME#v}"
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go run github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.10.0 app \
-            -licenses -json -output "dist/varkiv-${version}-go.cdx.json" -main cmd/varkiv .
+            -licenses -json -output "dist/varkiv-${{ steps.release.outputs.version }}-go.cdx.json" -main cmd/varkiv .
 
       - name: Prepare tagged container identity
         id: container
         shell: bash
         run: |
-          set -euo pipefail
           image="ghcr.io/${GITHUB_REPOSITORY,,}"
-          version="${GITHUB_REF_NAME#v}"
-          printf 'name=%s\nversion=%s\ntag=%s:%s\n' "$image" "$version" "$image" "$version" >> "$GITHUB_OUTPUT"
+          echo "name=$image" >> "$GITHUB_OUTPUT"
+          echo "tag=$image:${{ steps.release.outputs.version }}" >> "$GITHUB_OUTPUT"
 
-      - name: Set up Docker Buildx for release image
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4
 
       - name: Log in to GitHub Container Registry
@@ -253,7 +239,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Build and publish tagged amd64 and arm64 image
+      - name: Build and publish immutable amd64 and arm64 image
         id: container_push
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
@@ -265,7 +251,7 @@ jobs:
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ steps.container.outputs.version }}
+            org.opencontainers.image.version=${{ steps.release.outputs.version }}
           cache-from: type=gha,scope=varkiv-container
           cache-to: type=gha,mode=max,scope=varkiv-container
           provenance: mode=max
@@ -278,12 +264,26 @@ jobs:
           subject-digest: ${{ steps.container_push.outputs.digest }}
           push-to-registry: true
 
-      - name: Add digest-pinned Compose to release assets
+      - name: Verify published manifest and render deployment assets
         shell: bash
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
           image_ref='${{ steps.container.outputs.name }}@${{ steps.container_push.outputs.digest }}'
+          docker buildx imagetools inspect --raw "$image_ref" > "$RUNNER_TEMP/varkiv-image-index.json"
+          IMAGE_INDEX="$RUNNER_TEMP/varkiv-image-index.json" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          payload = json.loads(Path(os.environ["IMAGE_INDEX"]).read_text())
+          platforms = {
+              (item.get("platform", {}).get("os"), item.get("platform", {}).get("architecture"))
+              for item in payload.get("manifests", [])
+          }
+          assert ("linux", "amd64") in platforms, platforms
+          assert ("linux", "arm64") in platforms, platforms
+          PY
+          version='${{ steps.release.outputs.version }}'
           ./scripts/render-container-deployment.sh \
             --image "$image_ref" \
             --out "dist/varkiv-${version}-compose.yaml"
@@ -294,22 +294,44 @@ jobs:
 
       - name: Generate release checksums
         shell: bash
-        run: |
-          cd dist
-          sha256sum ./* > SHA256SUMS
+        working-directory: dist
+        run: sha256sum ./* > SHA256SUMS
 
       - name: Generate signed build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-path: 'dist/*'
 
-      - name: Publish immutable preview assets
+      - name: Prove anonymous NAS pull and both image architectures
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_ref='${{ steps.container.outputs.name }}@${{ steps.container_push.outputs.digest }}'
+          expected='Varkiv ${{ steps.release.outputs.version }}'
+          docker logout ghcr.io >/dev/null 2>&1 || true
+          test "$(docker run --rm --platform linux/amd64 "$image_ref" version)" = "$expected"
+          test "$(docker run --rm --platform linux/arm64 "$image_ref" version)" = "$expected"
+
+      - name: Publish immutable GitHub prerelease
+        if: steps.release.outputs.prerelease == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* \
             --verify-tag \
-            --title "$GITHUB_REF_NAME" \
+            --title "Varkiv ${{ steps.release.outputs.version }}" \
             --generate-notes \
             --prerelease
+
+      - name: Publish immutable GitHub stable release
+        if: steps.release.outputs.prerelease == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --verify-tag \
+            --title "Varkiv ${{ steps.release.outputs.version }}" \
+            --generate-notes \
+            --latest
