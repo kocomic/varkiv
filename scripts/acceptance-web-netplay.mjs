@@ -42,6 +42,32 @@ if (!/^https?:\/\/[^/?#]+(?::\d+)?$/.test(signalUpstream)) throw new Error('VARK
 if (requestedRoot && !isAbsolute(requestedRoot)) throw new Error('VARKIV_WEB_NETPLAY_ACCEPTANCE_DIR must be an absolute, new path');
 
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+const redactText = value => value
+  .replace(/(\/api\/v1\/web-emulation\/(?:content|saves)\/)[^/\s"']+/g, '$1[capability]')
+  .replace(/(\/play-netplay\/)[^/\s"']+/g, '$1[capability]');
+const redactSensitive = value => {
+  if (Array.isArray(value)) return value.map(redactSensitive);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [
+      key,
+      /(?:token|secret|invite|password|capability|authorization|credential)/i.test(key) ? '[redacted]' : redactSensitive(item)
+    ]));
+  }
+  return typeof value === 'string' ? redactText(value) : value;
+};
+const safeJSON = value => JSON.stringify(redactSensitive(value));
+const safeURL = value => {
+  const parsed = new URL(value);
+  parsed.search = '';
+  parsed.hash = '';
+  parsed.pathname = redactText(parsed.pathname);
+  return parsed.toString();
+};
+const diagnosticProbe = 'varkiv-private-diagnostic-probe';
+if (safeURL(`http://127.0.0.1/api/v1/web-emulation/content/${diagnosticProbe}/fixture.nes`).includes(diagnosticProbe) ||
+    safeJSON({invite_code: diagnosticProbe, nested: {password: diagnosticProbe}, player_url: `/play-netplay/${diagnosticProbe}`}).includes(diagnosticProbe)) {
+  throw new Error('netplay diagnostic redaction self-check failed');
+}
 const freePort = () => new Promise((resolve, reject) => {
   const probe = createServer();
   probe.once('error', reject);
@@ -171,7 +197,7 @@ try {
   const health = await waitForHealth(baseURL, server);
   const readiness = await api(baseURL, '/api/v1/web-netplay/readiness');
   if (!readiness.enabled || !readiness.signal_ready || !readiness.integrity_verified || readiness.save_policy !== 'no-persist') {
-    throw new Error(`netplay readiness contract failed: ${JSON.stringify(readiness)}`);
+    throw new Error(`netplay readiness contract failed: ${safeJSON(readiness)}`);
   }
 
   const importRequest = { source: 'nes/starter.nes', platform: 'nes', rom_storage: 'reference' };
@@ -179,7 +205,7 @@ try {
   const selected = preview.candidates.filter(candidate => candidate.status === 'new').map(candidate => candidate.token);
   if (selected.length !== 1) throw new Error(`expected one importable fixture, got ${selected.length}`);
   const committed = await api(baseURL, '/api/v1/imports/roms/commit', { method: 'POST', body: JSON.stringify({...importRequest, preview_token: preview.preview_token, selected_tokens: selected}) }, true);
-  if (committed.imported !== 1) throw new Error(`fixture import failed: ${JSON.stringify(committed)}`);
+  if (committed.imported !== 1) throw new Error(`fixture import failed: ${safeJSON(committed)}`);
   const games = (await api(baseURL, '/api/v1/games?locale=en', {}, true)).data;
   const game = games.find(item => (item.editions || []).some(candidate => (candidate.artifacts || []).some(artifact => artifact.sha256 === fixture.sha256)));
   const edition = games.flatMap(game => game.editions || []).find(item => (item.artifacts || []).some(artifact => artifact.sha256 === fixture.sha256));
@@ -225,30 +251,30 @@ try {
       else pageFailures.push(`${label}: ${error.message}`);
     });
     page.on('response', response => {
-      if (response.status() >= 400) nonOKResponses.push(`${label}:${response.status()}:${response.url()}`);
+      if (response.status() >= 400) nonOKResponses.push(`${label}:${response.status()}:${safeURL(response.url())}`);
     });
     page.on('request', request => {
-      if (request.url().includes('/web-emulation/saves/')) saveRequests.push(`${label}:${request.method()}:${request.url()}`);
+      if (request.url().includes('/web-emulation/saves/')) saveRequests.push(`${label}:${request.method()}:${safeURL(request.url())}`);
     });
     page.on('requestfailed', request => {
-      const expectedGuestAbort = label === 'guest' && request.method() === 'GET' && request.url().includes('/api/v1/web-emulation/content/') && request.failure()?.errorText === 'net::ERR_ABORTED';
-      if (expectedGuestAbort) headlessWarnings.push(`${label}: content fetch aborted after remote stream handoff`);
-      else pageFailures.push(`${label}: request failed ${request.url()} ${request.failure()?.errorText || ''}`);
+      const expectedContentAbort = request.method() === 'GET' && request.url().includes('/api/v1/web-emulation/content/') && request.failure()?.errorText === 'net::ERR_ABORTED';
+      if (expectedContentAbort) headlessWarnings.push(`${label}: content fetch aborted after runtime stream handoff`);
+      else pageFailures.push(`${label}: request failed ${safeURL(request.url())} ${request.failure()?.errorText || ''}`);
     });
   }
 
   const unauthorizedCreate = await apiResult(baseURL, '/api/v1/web-netplay/sessions', {
     method: 'POST', body: JSON.stringify({edition_id: edition.id, locale: 'en', client_id: 'unauthorized', display_name: 'Unauthorized'})
   });
-  if (unauthorizedCreate.status !== 401) throw new Error(`unauthenticated room creation was not rejected: ${JSON.stringify(unauthorizedCreate)}`);
+  if (unauthorizedCreate.status !== 401) throw new Error(`unauthenticated room creation was not rejected: ${safeJSON(unauthorizedCreate)}`);
   const malformedInvite = await apiResult(baseURL, '/api/v1/web-netplay/sessions/join', {
     method: 'POST', body: JSON.stringify({invite_code: 'not-an-invitation', edition_id: edition.id, locale: 'en', client_id: 'bad-invite', display_name: 'Bad invite'})
   });
   if (malformedInvite.status !== 400 || malformedInvite.body?.error?.code !== 'web_netplay_invite_invalid') {
-    throw new Error(`malformed invitation contract failed: ${JSON.stringify(malformedInvite)}`);
+    throw new Error(`malformed invitation contract failed: ${safeJSON(malformedInvite)}`);
   }
   const invalidPlayer = await apiResult(baseURL, '/play-netplay/not-a-signed-capability');
-  if (invalidPlayer.status !== 401) throw new Error(`invalid player capability was not rejected: ${JSON.stringify(invalidPlayer)}`);
+  if (invalidPlayer.status !== 401) throw new Error(`invalid player capability was not rejected: ${safeJSON(invalidPlayer)}`);
 
   const openNetplayDialog = async (page, selectedGameID, selectedEditionID) => {
     await page.goto(baseURL + '/?acceptance=web-netplay#library', {waitUntil: 'domcontentloaded'});
@@ -267,7 +293,7 @@ try {
   ]);
   if (hostResponse.status() !== 201) throw new Error(`host UI create failed: ${hostResponse.status()} ${await hostResponse.text()}`);
   const host = await hostResponse.json();
-  if (host.role !== 'host' || !host.invite_code) throw new Error(`host UI contract failed: ${JSON.stringify(host)}`);
+  if (host.role !== 'host' || !host.invite_code) throw new Error(`host UI contract failed: ${safeJSON(host)}`);
   const visibleInvite = hostPage.locator('#web-player-invite-code');
   await visibleInvite.waitFor({state: 'visible'});
   if ((await visibleInvite.textContent()) !== host.invite_code) throw new Error('host invitation is not visibly recoverable from the player UI');
@@ -276,14 +302,14 @@ try {
     method: 'POST', body: JSON.stringify({invite_code: host.invite_code, edition_id: differentEdition.id, locale: 'en', client_id: 'wrong-content', display_name: 'Wrong content'})
   });
   if (wrongContent.status !== 409 || wrongContent.body?.error?.code !== 'compatibility_mismatch') {
-    throw new Error(`mismatched content was not rejected: ${JSON.stringify(wrongContent)}`);
+    throw new Error(`mismatched content was not rejected: ${safeJSON(wrongContent)}`);
   }
   const [sessionID] = host.invite_code.split('.');
   const invalidToken = await apiResult(baseURL, '/api/v1/web-netplay/sessions/join', {
     method: 'POST', body: JSON.stringify({invite_code: `${sessionID}.${'0'.repeat(64)}`, edition_id: edition.id, locale: 'en', client_id: 'wrong-token', display_name: 'Wrong token'})
   });
   if (invalidToken.status !== 401 || invalidToken.body?.error?.code !== 'invalid_invitation') {
-    throw new Error(`wrong invitation secret was not rejected: ${JSON.stringify(invalidToken)}`);
+    throw new Error(`wrong invitation secret was not rejected: ${safeJSON(invalidToken)}`);
   }
 
   await openNetplayDialog(guestPage, game.id, edition.id);
@@ -296,19 +322,19 @@ try {
   ]);
   if (guestResponse.status() !== 200) throw new Error(`guest UI join failed: ${guestResponse.status()} ${await guestResponse.text()}`);
   const guest = await guestResponse.json();
-  if (guest.role !== 'guest' || guest.session.state !== 'ready') throw new Error(`guest UI contract failed: ${JSON.stringify(guest)}`);
+  if (guest.role !== 'guest' || guest.session.state !== 'ready') throw new Error(`guest UI contract failed: ${safeJSON(guest)}`);
 
   const thirdParticipant = await apiResult(baseURL, '/api/v1/web-netplay/sessions/join', {
     method: 'POST', body: JSON.stringify({invite_code: host.invite_code, edition_id: edition.id, locale: 'en', client_id: 'third-browser', display_name: 'Third'})
   });
   if (thirdParticipant.status !== 409 || thirdParticipant.body?.error?.code !== 'session_full') {
-    throw new Error(`third participant was not rejected: ${JSON.stringify(thirdParticipant)}`);
+    throw new Error(`third participant was not rejected: ${safeJSON(thirdParticipant)}`);
   }
   const replayedGuest = await apiResult(baseURL, '/api/v1/web-netplay/sessions/join', {
     method: 'POST', body: JSON.stringify({invite_code: host.invite_code, edition_id: edition.id, locale: 'en', client_id: 'guest-browser', display_name: 'Guest'})
   });
   if (replayedGuest.status !== 200 || replayedGuest.body?.session?.participants?.length !== 2) {
-    throw new Error(`idempotent guest retry failed: ${JSON.stringify(replayedGuest)}`);
+    throw new Error(`idempotent guest retry failed: ${safeJSON(replayedGuest)}`);
   }
 
   const hostScope = hostPage.frameLocator('#web-player-frame');
@@ -325,7 +351,7 @@ try {
       boot: body.querySelector('.boot span')?.textContent || '',
       emulator: !!body.ownerDocument.defaultView.EJS_emulator
     }))));
-    throw new Error(`players did not become ready: states=${JSON.stringify(states)} failures=${JSON.stringify(pageFailures)}`, {cause: error});
+    throw new Error(`players did not become ready: states=${safeJSON(states)} failures=${safeJSON(pageFailures)}`, {cause: error});
   }
   await hostScope.locator('.ejs_start_button').click({timeout: 15_000});
   await hostScope.locator('body[data-runtime-state="started"]').waitFor({timeout: 60_000});
@@ -340,7 +366,7 @@ try {
   ]);
   const mobileFrame = await guestPage.locator('.web-player-frame').boundingBox();
   if (!mobileFrame || mobileFrame.height < 500 || mobileFrame.width > 390) {
-    throw new Error(`mobile netplay frame is not usable: ${JSON.stringify(mobileFrame)}`);
+    throw new Error(`mobile netplay frame is not usable: ${safeJSON(mobileFrame)}`);
   }
 
   await hostScope.locator('body').evaluate(body => {
@@ -369,7 +395,7 @@ try {
   }));
   const remoteInputs = await hostScope.locator('body').evaluate(body => body.ownerDocument.defaultView.__varkivRemoteInputs);
   if (!remoteInputs.some(values => values[2] !== 0) || !remoteInputs.some(values => values[2] === 0)) {
-    throw new Error(`guest input did not produce a press/release pair on host: ${JSON.stringify(remoteInputs)}`);
+    throw new Error(`guest input did not produce a press/release pair on host: ${safeJSON(remoteInputs)}`);
   }
   if (saveRequests.length) throw new Error(`netplay unexpectedly called persistent save API: ${saveRequests.join(', ')}`);
   if (pageFailures.length || nonOKResponses.length) throw new Error(`browser failures:\n${[...pageFailures, ...nonOKResponses].join('\n')}`);
