@@ -99,7 +99,18 @@ jobs:
 
       - name: Test Windows compatibility
         if: runner.os == 'Windows'
-        run: go test -count=1 -coverprofile=coverage.out ./...
+        shell: pwsh
+        run: |
+          $testOutput = @(& go test -count=1 -coverprofile=coverage.out ./... 2>&1)
+          $testExitCode = $LASTEXITCODE
+          $testOutput | ForEach-Object { Write-Output $_ }
+          if ($testExitCode -ne 0) {
+            $message = (($testOutput | Select-Object -Last 80) -join "`n")
+            if ($message.Length -gt 8000) { $message = $message.Substring($message.Length - 8000) }
+            $message = $message.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Windows Go tests::$message"
+            exit $testExitCode
+          }
 
       - name: Run retained-output import/export round trip
         if: runner.os == 'Linux'

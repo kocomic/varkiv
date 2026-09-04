@@ -873,7 +873,10 @@ main,.view,.sync-layout,.sync-panel,.settings-overview,.settings-overview articl
 @media(max-width:620px){
   .sidebar{position:fixed;inset:auto 0 0 0;width:100%;height:calc(68px + env(safe-area-inset-bottom));padding:0 max(6px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(6px,env(safe-area-inset-left));border-top:2px solid #303541;border-bottom:0;z-index:24}
   .sidebar .brand{display:none}
-  .sidebar nav{display:grid;width:100%;height:68px;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;margin:0}
+  /* English labels vary from five to nine glyphs. Give the longer canonical
+     terms real room instead of abbreviating them or relying on font metrics
+     that differ between macOS and Linux Chromium. */
+  .sidebar nav{display:grid;width:100%;height:68px;grid-template-columns:minmax(0,1.05fr) minmax(0,1.3fr) minmax(0,.9fr) minmax(0,1.15fr) minmax(0,.8fr) minmax(0,1.15fr);gap:0;margin:0}
   .sidebar .nav-item{width:100%;min-width:0;height:68px;gap:4px;padding:7px 1px 6px;font-size:11px}
   .sidebar .nav-label{display:block;width:100%;height:14px;max-width:100%;overflow:hidden;font-size:0;line-height:14px;text-align:center;text-overflow:clip;white-space:nowrap}
   .sidebar .nav-label:after{content:attr(data-mobile-label);font-size:11px;line-height:14px}

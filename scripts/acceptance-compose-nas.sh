@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -Eeuo pipefail
 umask 077
 
 repository_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
@@ -68,6 +68,17 @@ fixture_root=$(mktemp -d "${TMPDIR:-/tmp}/varkiv-nas-compose.XXXXXX")
 env_file="$fixture_root/nas.env"
 created_image=false
 stage=setup
+
+report_error() {
+  local task_status=$?
+  local line_number=$1
+  printf 'nas_compose_acceptance=error stage=%s line=%s status=%s\n' "$stage" "$line_number" "$task_status" >&2
+  if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+    printf '::error title=NAS Compose acceptance::Failed at stage %s (line %s)\n' "$stage" "$line_number" >&2
+  fi
+  return "$task_status"
+}
+trap 'report_error "$LINENO"' ERR
 
 if [[ -z "$image" ]]; then
   image="varkiv:nas-acceptance-$suffix"
