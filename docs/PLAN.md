@@ -1,6 +1,6 @@
 # 路线图
 
-当前版本：`0.1.0-preview.1`（preview.1）
+当前版本：`0.1.0-preview.2`（preview.2）
 产品事实源：[PRODUCT.md](PRODUCT.md)
 状态：核心软件链已实现；当前优先级是可部署、可运行和真实设备证据
 

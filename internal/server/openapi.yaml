@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: Varkiv HTTP API
   summary: Stable, versioned contract for the Varkiv library and device ecosystem
-  version: 0.1.0-preview.1
+  version: 0.1.0-preview.2
   description: |
     Versioned HTTP API for a self-hosted personal ROM catalog, frontend imports
     and exports, scoped device pairing, multi-file save streams, and automatic

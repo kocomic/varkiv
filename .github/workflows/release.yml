@@ -307,10 +307,9 @@ jobs:
         run: |
           set -euo pipefail
           image_ref='${{ steps.container.outputs.name }}@${{ steps.container_push.outputs.digest }}'
-          expected='Varkiv ${{ steps.release.outputs.version }}'
-          docker logout ghcr.io >/dev/null 2>&1 || true
-          test "$(docker run --rm --platform linux/amd64 "$image_ref" version)" = "$expected"
-          test "$(docker run --rm --platform linux/arm64 "$image_ref" version)" = "$expected"
+          ./scripts/verify-anonymous-container.sh \
+            --image "$image_ref" \
+            --version '${{ steps.release.outputs.version }}'
 
       - name: Publish immutable GitHub prerelease
         if: steps.release.outputs.prerelease == 'true'

@@ -172,7 +172,7 @@ docker compose stop app
 docker run --rm \
   -v varkiv-data:/data:ro \
   -v /absolute/path/to/backups:/backups \
-  varkiv:0.1.0-preview.1 backup-state \
+  varkiv:0.1.0-preview.2 backup-state \
   --db /data/library.db \
   --state /data \
   --out /backups/varkiv-state
@@ -193,13 +193,13 @@ docker compose start app
 docker run --rm \
   -v varkiv-restore:/restore \
   -v /absolute/path/to/backup:/backup:ro \
-  varkiv:0.1.0-preview.1 restore-state \
+  varkiv:0.1.0-preview.2 restore-state \
   --from /backup/varkiv-state \
   --out /restore/recovered
 
 docker run --rm \
   -v varkiv-restore:/data:ro \
-  varkiv:0.1.0-preview.1 db-check \
+  varkiv:0.1.0-preview.2 db-check \
   --db /data/recovered/library.db
 ```
 

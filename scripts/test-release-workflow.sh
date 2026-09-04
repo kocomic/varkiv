@@ -34,9 +34,7 @@ for value in \
   'subject-digest: ${{ steps.container_push.outputs.digest }}' \
   'subject-path: '\''dist/*'\''' \
   './scripts/render-container-deployment.sh' \
-  'docker logout ghcr.io' \
-  'docker run --rm --platform linux/amd64' \
-  'docker run --rm --platform linux/arm64' \
+  './scripts/verify-anonymous-container.sh' \
   'gh release create "$GITHUB_REF_NAME" dist/*' \
   '--prerelease' \
   '--latest'; do

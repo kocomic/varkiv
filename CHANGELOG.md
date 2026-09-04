@@ -2,7 +2,7 @@
 
 Varkiv follows [Semantic Versioning](https://semver.org/). Only changes that affect users, deployment, public APIs, stored data, or supported clients belong here; implementation notes and one-off test evidence remain in commits and release artifacts.
 
-## 0.1.0-preview.1 - Unreleased
+## 0.1.0-preview.2 - 2026-09-05
 
 Initial public source preview.
 

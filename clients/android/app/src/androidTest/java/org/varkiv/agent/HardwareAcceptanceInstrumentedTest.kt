@@ -13,7 +13,7 @@ class HardwareAcceptanceInstrumentedTest {
     fun exportedJsonMatchesPrivacyMinimizedServerContract() {
         val payload = AndroidHardwareAcceptance.build(AndroidAcceptanceInput(
             generatedAt = "2026-08-27T08:00:00Z",
-            agentVersion = "0.1.0-preview.1",
+            agentVersion = "0.1.0-preview.2",
             hostArchitecture = "arm64",
             configProtected = true,
             agentRootReal = true,
