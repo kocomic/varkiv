@@ -2,7 +2,7 @@ name: varkiv
 
 services:
   app:
-    image: "${VARKIV_IMAGE:-varkiv:0.1.0-preview.3}"
+    image: "${VARKIV_IMAGE:-varkiv:0.1.0-preview.4}"
     build:
       context: .
       dockerfile: Dockerfile

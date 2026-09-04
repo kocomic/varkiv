@@ -2,6 +2,11 @@
 
 Varkiv follows [Semantic Versioning](https://semver.org/). Only changes that affect users, deployment, public APIs, stored data, or supported clients belong here; implementation notes and one-off test evidence remain in commits and release artifacts.
 
+## 0.1.0-preview.4 - 2026-09-05
+
+- Isolated anonymous `linux/amd64` and `linux/arm64` release proofs in separate runners, preventing Docker manifest-list digest reuse from masking a valid multi-architecture image.
+- Gated GitHub Release publication on both anonymous architecture proofs and verified, checksum-protected release assets.
+
 ## 0.1.0-preview.3 - 2026-09-05
 
 - Extended the bounded anonymous GHCR verification window and added a default-policy regression test after real registry propagation exceeded the earlier one-minute gate.

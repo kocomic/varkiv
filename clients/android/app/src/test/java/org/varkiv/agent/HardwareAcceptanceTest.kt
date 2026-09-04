@@ -8,7 +8,7 @@ import org.junit.Test
 class HardwareAcceptanceTest {
     private fun input(observations: Collection<String> = AndroidHardwareAcceptance.requiredObservations) = AndroidAcceptanceInput(
         generatedAt = "2026-08-27T08:00:00Z",
-        agentVersion = "0.1.0-preview.3",
+        agentVersion = "0.1.0-preview.4",
         hostArchitecture = "arm64",
         configProtected = true,
         agentRootReal = true,

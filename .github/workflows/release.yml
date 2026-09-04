@@ -332,11 +332,61 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  publish:
-    name: Prove anonymous image and publish GitHub Release
+  prove:
+    name: Prove anonymous ${{ matrix.platform }} image
     needs: release
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the exact tag without persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Revalidate immutable image identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "${GITHUB_REF_NAME}^{commit}")" = "$GITHUB_SHA"
+          test "$(tr -d '\r\n' < internal/buildinfo/VERSION)" = '${{ needs.release.outputs.version }}'
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "release already exists; refusing to replace published assets" >&2
+            exit 1
+          fi
+
+      - name: Register ARM64 execution for anonymous proof
+        if: matrix.platform == 'linux/arm64'
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+        with:
+          platforms: arm64
+
+      - name: Prove anonymous NAS pull in an isolated Docker runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./scripts/verify-anonymous-container.sh \
+            --image '${{ needs.release.outputs.image_ref }}' \
+            --version '${{ needs.release.outputs.version }}' \
+            --platform '${{ matrix.platform }}'
+
+  publish:
+    name: Publish verified GitHub Release
+    needs:
+      - release
+      - prove
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
@@ -359,11 +409,6 @@ jobs:
             exit 1
           fi
 
-      - name: Register ARM64 execution for anonymous proof
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
-        with:
-          platforms: arm64
-
       - name: Restore verified release assets
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
@@ -374,14 +419,6 @@ jobs:
         working-directory: dist
         shell: bash
         run: sha256sum -c SHA256SUMS
-
-      - name: Prove anonymous NAS pull and both image architectures
-        shell: bash
-        run: |
-          set -euo pipefail
-          ./scripts/verify-anonymous-container.sh \
-            --image '${{ needs.release.outputs.image_ref }}' \
-            --version '${{ needs.release.outputs.version }}'
 
       - name: Publish immutable GitHub prerelease
         if: needs.release.outputs.prerelease == 'true'
