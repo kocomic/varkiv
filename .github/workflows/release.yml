@@ -124,6 +124,7 @@ jobs:
           ./scripts/check-github-actions-pinning.sh
           ./scripts/test-github-actions-pinning.sh
           ./scripts/test-release-workflow.sh
+          ./scripts/test-container-workflow.sh
           ./scripts/check-version.sh
           ./scripts/check-docs.py
           ./scripts/test-render-container-deployment.sh

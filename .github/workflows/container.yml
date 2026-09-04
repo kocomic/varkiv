@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: container-edge
+  group: container-edge-${{ github.event.workflow_run.event }}-${{ github.event.workflow_run.head_branch }}
   cancel-in-progress: true
 
 jobs:
