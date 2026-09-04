@@ -12,7 +12,7 @@ body:
     attributes:
       label: Varkiv version
       description: Paste `varkiv version --json` or the exact image digest.
-      placeholder: 0.1.0-preview.2 or ghcr.io/...@sha256:...
+      placeholder: 0.1.0-preview.3 or ghcr.io/...@sha256:...
     validations:
       required: true
   - type: dropdown

@@ -14,11 +14,15 @@ concurrency:
 
 jobs:
   release:
-    name: Verify, publish, and attest
+    name: Verify, build, and attest
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      image_ref: ${{ steps.container.outputs.name }}@${{ steps.container_push.outputs.digest }}
     permissions:
-      contents: write
+      contents: read
       packages: write
       id-token: write
       attestations: write
@@ -239,6 +243,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - name: Refuse an existing version image
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='${{ steps.container.outputs.tag }}'
+          status=0
+          output="$(docker buildx imagetools inspect "$tag" 2>&1)" || status=$?
+          if ((status == 0)); then
+            echo "version image already exists; refusing to replace immutable image: $tag" >&2
+            exit 1
+          fi
+          if ! grep -Eqi 'not found|manifest unknown' <<<"$output"; then
+            echo "unable to prove that the immutable version image is absent" >&2
+            printf '%s\n' "$output" >&2
+            exit 1
+          fi
+
       - name: Build and publish immutable amd64 and arm64 image
         id: container_push
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
@@ -302,35 +323,85 @@ jobs:
         with:
           subject-path: 'dist/*'
 
+      - name: Preserve verified release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: varkiv-release-${{ steps.release.outputs.version }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Prove anonymous image and publish GitHub Release
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Check out the exact tag without persistent credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Revalidate immutable release identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse "${GITHUB_REF_NAME}^{commit}")" = "$GITHUB_SHA"
+          test "$(tr -d '\r\n' < internal/buildinfo/VERSION)" = '${{ needs.release.outputs.version }}'
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "release already exists; refusing to replace published assets" >&2
+            exit 1
+          fi
+
+      - name: Register ARM64 execution for anonymous proof
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+        with:
+          platforms: arm64
+
+      - name: Restore verified release assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: varkiv-release-${{ needs.release.outputs.version }}
+          path: dist
+
+      - name: Verify restored release asset checksums
+        working-directory: dist
+        shell: bash
+        run: sha256sum -c SHA256SUMS
+
       - name: Prove anonymous NAS pull and both image architectures
         shell: bash
         run: |
           set -euo pipefail
-          image_ref='${{ steps.container.outputs.name }}@${{ steps.container_push.outputs.digest }}'
           ./scripts/verify-anonymous-container.sh \
-            --image "$image_ref" \
-            --version '${{ steps.release.outputs.version }}'
+            --image '${{ needs.release.outputs.image_ref }}' \
+            --version '${{ needs.release.outputs.version }}'
 
       - name: Publish immutable GitHub prerelease
-        if: steps.release.outputs.prerelease == 'true'
+        if: needs.release.outputs.prerelease == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* \
             --verify-tag \
-            --title "Varkiv ${{ steps.release.outputs.version }}" \
+            --title "Varkiv ${{ needs.release.outputs.version }}" \
             --generate-notes \
             --prerelease
 
       - name: Publish immutable GitHub stable release
-        if: steps.release.outputs.prerelease == 'false'
+        if: needs.release.outputs.prerelease == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* \
             --verify-tag \
-            --title "Varkiv ${{ steps.release.outputs.version }}" \
+            --title "Varkiv ${{ needs.release.outputs.version }}" \
             --generate-notes \
             --latest

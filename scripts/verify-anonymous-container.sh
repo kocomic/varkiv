@@ -8,7 +8,9 @@ Usage: scripts/verify-anonymous-container.sh --image IMAGE@sha256:DIGEST --versi
 
 Logs out of GHCR, then proves that the immutable image can be pulled and run
 without credentials on both linux/amd64 and linux/arm64. Registry propagation
-failures are retried within a fixed bound; output mismatches fail immediately.
+failures are retried for about ten minutes by default; output mismatches fail
+immediately. VARKIV_ANONYMOUS_PULL_ATTEMPTS and
+VARKIV_ANONYMOUS_PULL_DELAY_SECONDS may tighten that fixed bound.
 EOF
 }
 
@@ -45,10 +47,10 @@ done
   exit 2
 }
 
-attempts="${VARKIV_ANONYMOUS_PULL_ATTEMPTS:-6}"
-delay_seconds="${VARKIV_ANONYMOUS_PULL_DELAY_SECONDS:-10}"
-if [[ ! "$attempts" =~ ^([1-9]|10)$ ]]; then
-  echo "error: VARKIV_ANONYMOUS_PULL_ATTEMPTS must be between 1 and 10" >&2
+attempts="${VARKIV_ANONYMOUS_PULL_ATTEMPTS:-20}"
+delay_seconds="${VARKIV_ANONYMOUS_PULL_DELAY_SECONDS:-30}"
+if [[ ! "$attempts" =~ ^[0-9]+$ ]] || ((attempts < 1 || attempts > 30)); then
+  echo "error: VARKIV_ANONYMOUS_PULL_ATTEMPTS must be between 1 and 30" >&2
   exit 2
 fi
 if [[ ! "$delay_seconds" =~ ^[0-9]+$ ]] || ((delay_seconds > 60)); then
