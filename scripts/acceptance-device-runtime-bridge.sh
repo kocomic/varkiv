@@ -26,6 +26,7 @@ expected_core_sha="52a3ceadeb4798cc323094c614eff20456fad7cf2287a5add8a475c677c39
 expected_driver_size=14705288
 expected_core_size=2436288
 temp_parent="${TMPDIR:-/tmp}"
+container_user="$(id -u):$(id -g)"
 
 if [[ -n "${VARKIV_RUNTIME_BRIDGE_DIR:-}" ]]; then
   evidence_root="${VARKIV_RUNTIME_BRIDGE_DIR}"
@@ -57,7 +58,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-for command_name in docker go curl jq shasum wc od; do
+for command_name in docker go curl jq shasum wc od id; do
   command -v "${command_name}" >/dev/null || { echo "missing required command: ${command_name}" >&2; exit 1; }
 done
 [[ "${rom_path}" == /* && -f "${rom_path}" && ! -L "${rom_path}" ]] || { echo "VARKIV_RUNTIME_BRIDGE_ROM must be an absolute regular file" >&2; exit 1; }
@@ -136,7 +137,8 @@ post_json save-bindings/setup '{"stream":{"id":"agent-snes-shared-stream","owner
 pairing_code="$(post_json pairing-codes '{"expires_in_seconds":600,"requested_device":{"device_profile_id":"builtin-device-rocknix"}}' | jq -er '.code')"
 
 pair_output="$(docker run --rm --name "${agent_container}" --network "${network_name}" \
-  --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,nodev \
+	--user "${container_user}" \
+	--read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,nodev \
   --mount "type=bind,src=${varkiv_binary},dst=/usr/local/bin/varkiv,readonly" \
   --mount "type=bind,src=${device_root},dst=/device" \
   --entrypoint /usr/local/bin/varkiv "${image}" agent pair \
@@ -148,7 +150,8 @@ pair_output="$(docker run --rm --name "${agent_container}" --network "${network_
 [[ "$(stat -f '%Lp' "${agent_config}" 2>/dev/null || stat -c '%a' "${agent_config}")" == "600" ]] || { echo "Agent config permissions are not private" >&2; exit 1; }
 
 sync_output="$(docker run --rm --name "${agent_container}" --network "${network_name}" \
-  --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,nodev \
+	--user "${container_user}" \
+	--read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,nodev \
   --mount "type=bind,src=${varkiv_binary},dst=/usr/local/bin/varkiv,readonly" \
   --mount "type=bind,src=${device_root},dst=/device" \
   --entrypoint /usr/local/bin/varkiv "${image}" agent sync --config /device/agent.json)"
@@ -171,7 +174,8 @@ jq '.path_overrides.core_dir = "/device/drifted-cores"' "${agent_config}" > "${d
 chmod 0600 "${device_root}/.agent-drift.json"
 mv "${device_root}/.agent-drift.json" "${agent_config}"
 drift_output="$(docker run --rm --name "${agent_container}" --network "${network_name}" \
-  --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,nodev \
+	--user "${container_user}" \
+	--read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,nodev \
   --mount "type=bind,src=${varkiv_binary},dst=/usr/local/bin/varkiv,readonly" \
   --mount "type=bind,src=${device_root},dst=/device" \
   --entrypoint /usr/local/bin/varkiv "${image}" agent sync --config /device/agent.json)"
@@ -187,7 +191,8 @@ jq '.path_overrides.core_dir = "/opt/libretro"' "${agent_config}" > "${device_ro
 chmod 0600 "${device_root}/.agent-restored.json"
 mv "${device_root}/.agent-restored.json" "${agent_config}"
 restore_output="$(docker run --rm --name "${agent_container}" --network "${network_name}" \
-  --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,nodev \
+	--user "${container_user}" \
+	--read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,nodev \
   --mount "type=bind,src=${varkiv_binary},dst=/usr/local/bin/varkiv,readonly" \
   --mount "type=bind,src=${device_root},dst=/device" \
   --entrypoint /usr/local/bin/varkiv "${image}" agent sync --config /device/agent.json)"

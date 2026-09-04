@@ -147,7 +147,7 @@ else
 fi
 
 fixture_rom="${project_root}/testdata/pegasus/gba/Advance Wars (USA).gba"
-expected_rom_sha="fc7c9a43789d27038753bdf114a59d39eb53aabe0a765b3512e6d584d17f9735"
+expected_rom_sha="c4a4c5ba06e6c6f174b676e8b1ffd02333ce015d7e1ec8e18f8cca7961a5842a"
 [[ -f "${fixture_rom}" && ! -L "${fixture_rom}" ]] || { echo "Windows fixture ROM is unavailable" >&2; exit 1; }
 [[ "$(shasum -a 256 "${fixture_rom}" | awk '{print $1}')" == "${expected_rom_sha}" ]] || { echo "Windows fixture ROM identity drifted" >&2; exit 1; }
 

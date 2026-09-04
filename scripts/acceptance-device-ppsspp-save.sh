@@ -19,6 +19,7 @@ project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 version="$(tr -d '[:space:]' < "${project_root}/internal/buildinfo/VERSION")"
 image="${VARKIV_PPSSPP_AGENT_IMAGE:-varkiv:${version}}"
 temp_parent="${TMPDIR:-/tmp}"
+container_user="$(id -u):$(id -g)"
 
 if [[ -n "${VARKIV_PPSSPP_AGENT_DIR:-}" ]]; then
   evidence_root="${VARKIV_PPSSPP_AGENT_DIR}"
@@ -54,7 +55,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-for command_name in docker go curl jq openssl shasum stat find wc cmp; do
+for command_name in docker go curl jq openssl shasum stat find wc cmp id; do
   command -v "${command_name}" >/dev/null 2>&1 || { echo "missing required command: ${command_name}" >&2; exit 1; }
 done
 docker image inspect "${image}" >/dev/null 2>&1 || { echo "missing current Varkiv image: ${image}" >&2; exit 1; }
@@ -128,8 +129,9 @@ post_json launch-bindings '{"edition_id":"agent-ppsspp-edition","device_profile_
 run_agent() {
   local root=$1
   shift
-  docker run --rm --name "${agent_container}" --network "${network_name}" \
-    --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,nodev \
+	docker run --rm --name "${agent_container}" --network "${network_name}" \
+	  --user "${container_user}" \
+	  --read-only --cap-drop=ALL --security-opt=no-new-privileges --tmpfs /tmp:rw,noexec,nosuid,nodev \
     --mount "type=bind,src=${varkiv_binary},dst=/usr/local/bin/varkiv,readonly" \
     --mount "type=bind,src=${root},dst=/device" \
     --entrypoint /usr/local/bin/varkiv "${image}" "$@"
