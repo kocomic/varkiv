@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -27,12 +26,7 @@ func ValidateDatabaseBackup(ctx context.Context, path string) (int, error) {
 	if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
 		return 0, errors.New("database backup must be an exact regular file")
 	}
-	uri := &url.URL{Scheme: "file", Path: filepath.ToSlash(absolute)}
-	query := uri.Query()
-	query.Set("mode", "ro")
-	query.Set("immutable", "1")
-	uri.RawQuery = query.Encode()
-	db, err := sql.Open("sqlite", uri.String())
+	db, err := sql.Open("sqlite", readOnlySQLiteURI(absolute, true))
 	if err != nil {
 		return 0, errors.New("database backup could not be opened")
 	}

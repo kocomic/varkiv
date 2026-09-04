@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -65,7 +66,7 @@ func TestMediaThumbnailCacheVerifiesSourceAndRepairsOnlyCache(t *testing.T) {
 	}
 	cachePath := filepath.Join(root, ".library-data", "media", "cache", "thumbnails-v1", hash[:2], hash, "128.png")
 	cacheInfo, err := os.Lstat(cachePath)
-	if err != nil || !cacheInfo.Mode().IsRegular() || cacheInfo.Mode().Perm() != 0o600 {
+	if err != nil || !cacheInfo.Mode().IsRegular() || (runtime.GOOS != "windows" && cacheInfo.Mode().Perm() != 0o600) {
 		t.Fatalf("thumbnail cache mode = %#v err=%v", cacheInfo, err)
 	}
 	if strings.Contains(cachePath, item.OriginalName) || strings.Contains(cachePath, "original-private-name") {

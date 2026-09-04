@@ -26,9 +26,9 @@ func TestSecureConfigFileUsesAProtectedTwoPrincipalDACL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dacl, present, err := descriptor.DACL()
-	if err != nil || !present || dacl == nil || dacl.AceCount != 2 {
-		t.Fatalf("private config DACL present=%t ace_count=%d err=%v", present, func() uint16 {
+	dacl, defaulted, err := descriptor.DACL()
+	if err != nil || defaulted || dacl == nil || dacl.AceCount != 2 {
+		t.Fatalf("private config DACL defaulted=%t ace_count=%d err=%v", defaulted, func() uint16 {
 			if dacl == nil {
 				return 0
 			}

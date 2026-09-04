@@ -75,6 +75,14 @@ type targetManifest struct {
 	Files         []targetManifestFile `json:"files"`
 }
 
+func targetPackageFileMode(relative string) os.FileMode {
+	base := pathpkg.Base(filepath.ToSlash(relative))
+	if base == "varkiv" || strings.EqualFold(base, "varkiv.exe") || strings.HasSuffix(strings.ToLower(base), ".sh") {
+		return 0o700
+	}
+	return 0o600
+}
+
 type TargetPackageVerificationResult struct {
 	Kind          string `json:"kind"`
 	Files         int    `json:"files"`
@@ -726,8 +734,17 @@ func BuildTargetPackage(input TargetPackageInput) (TargetPackageResult, error) {
 		if digestErr != nil {
 			return TargetPackageResult{}, digestErr
 		}
-		info, _ := os.Stat(path)
-		manifestFiles = append(manifestFiles, targetManifestFile{Path: relative, SHA256: digest, Mode: uint32(info.Mode().Perm())})
+		expectedMode := targetPackageFileMode(relative)
+		if runtime.GOOS != "windows" {
+			info, statErr := os.Stat(path)
+			if statErr != nil || info.Mode().Perm() != expectedMode {
+				return TargetPackageResult{}, fmt.Errorf("target package file mode drifted for %s", relative)
+			}
+		}
+		// Windows cannot represent POSIX execute bits. Record the destination
+		// contract rather than the permissions of the build host so a package
+		// generated on Windows still verifies safely after transfer.
+		manifestFiles = append(manifestFiles, targetManifestFile{Path: relative, SHA256: digest, Mode: uint32(expectedMode)})
 	}
 	manifest, err := json.MarshalIndent(map[string]any{"format_version": 1, "kind": kind, "sensitive": true, "files": manifestFiles}, "", "  ")
 	if err != nil {

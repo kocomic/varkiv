@@ -107,7 +107,7 @@ func TestBuildROCKNIXTargetPackage(t *testing.T) {
 		if statErr != nil {
 			t.Fatalf("%s: %v", relative, statErr)
 		}
-		if info.Mode().Perm() != mode {
+		if runtime.GOOS != "windows" && info.Mode().Perm() != mode {
 			t.Fatalf("%s mode = %04o, want %04o", relative, info.Mode().Perm(), mode)
 		}
 	}
@@ -137,6 +137,11 @@ func TestBuildROCKNIXTargetPackage(t *testing.T) {
 	}
 	if manifest.FormatVersion != 1 || !manifest.Sensitive || len(manifest.Files) != 7 {
 		t.Fatalf("unexpected manifest: %#v", manifest)
+	}
+	for _, item := range manifest.Files {
+		if want := uint32(targetPackageFileMode(item.Path)); item.Mode != want {
+			t.Fatalf("manifest mode for %s = %04o, want %04o", item.Path, item.Mode, want)
+		}
 	}
 	if strings.Contains(string(manifestBytes), "private-target-token") || strings.Contains(string(manifestBytes), root) {
 		t.Fatal("manifest leaked a token or host path")
@@ -529,7 +534,7 @@ func TestBuildSteamOSTargetPackage(t *testing.T) {
 		"varkiv-target-manifest.json": 0o600,
 	} {
 		info, statErr := os.Stat(filepath.Join(output, filepath.FromSlash(relative)))
-		if statErr != nil || info.Mode().Perm() != mode {
+		if statErr != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != mode) {
 			t.Fatalf("%s mode: %v %#o", relative, statErr, info.Mode().Perm())
 		}
 	}
@@ -633,11 +638,13 @@ func TestBuildTargetPackageRejectsWrongBinaryAndOpenConfig(t *testing.T) {
 	}
 	arm := filepath.Join(root, "arm")
 	writeARM64ELF(t, arm)
-	if err := os.Chmod(configPath, 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := BuildTargetPackage(TargetPackageInput{Kind: "rocknix", BinaryPath: arm, ConfigPath: configPath, OutputPath: filepath.Join(root, "two")}); err == nil || !strings.Contains(err.Error(), "permissions") {
-		t.Fatalf("expected private config permission rejection, got %v", err)
+	if runtime.GOOS != "windows" {
+		if err := os.Chmod(configPath, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := BuildTargetPackage(TargetPackageInput{Kind: "rocknix", BinaryPath: arm, ConfigPath: configPath, OutputPath: filepath.Join(root, "two")}); err == nil || !strings.Contains(err.Error(), "permissions") {
+			t.Fatalf("expected private config permission rejection, got %v", err)
+		}
 	}
 }
 

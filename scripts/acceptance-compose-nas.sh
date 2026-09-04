@@ -236,7 +236,9 @@ case "$backup_output" in
   *) printf '%s\n' 'NAS backup helper did not report the expected result' >&2; exit 1 ;;
 esac
 wait_ready
-[[ -f "$fixture_root/backups/acceptance-backup/backup.json" ]]
+docker run --rm --user 10001:10001 --entrypoint /bin/sh \
+  --mount "type=bind,src=$fixture_root/backups,dst=/backups,readonly" \
+  "$image" -c 'test -f "$1"' sh /backups/acceptance-backup/backup.json
 [[ "$(curl --silent --output /dev/null --write-out '%{http_code}' -H "Authorization: Bearer $token" "http://127.0.0.1:$port/api/v1/games/nas-acceptance-game")" == 200 ]]
 
 stage=restore-drill
@@ -248,7 +250,9 @@ case "$restore_output" in
 esac
 after_restore=$(docker run --rm --entrypoint sha256sum --mount "type=bind,src=$fixture_root/data,dst=/source,readonly" "$image" /source/library.db | awk '{print $1}')
 [[ "$before_restore" == "$after_restore" ]]
-[[ -f "$fixture_root/restore/acceptance-restored/library.db" ]]
+docker run --rm --user 10001:10001 --entrypoint /bin/sh \
+  --mount "type=bind,src=$fixture_root/restore,dst=/restore,readonly" \
+  "$image" -c 'test -f "$1"' sh /restore/acceptance-restored/library.db
 [[ "$(curl --silent --output /dev/null --write-out '%{http_code}' -H "Authorization: Bearer $token" "http://127.0.0.1:$port/api/v1/games/nas-acceptance-game")" == 200 ]]
 
 stage=complete

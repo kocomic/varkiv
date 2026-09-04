@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -516,7 +517,7 @@ func TestBuildRecoveryRestoresOldFilesAndRemovesOnlyNewTargets(t *testing.T) {
 	if err != nil || string(restored) != "before" {
 		t.Fatalf("existing file not restored: %q, %v", restored, err)
 	}
-	if info, err := os.Stat(existing); err != nil || info.Mode().Perm() != 0o640 {
+	if info, err := os.Stat(existing); err != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != 0o640) {
 		t.Fatalf("existing mode not restored: %v, %v", info, err)
 	}
 	if _, err = os.Lstat(newTarget); !errors.Is(err, os.ErrNotExist) {

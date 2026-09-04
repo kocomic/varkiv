@@ -54,7 +54,7 @@ func TestWriteIsDeterministicAcrossSourceMetadata(t *testing.T) {
 			if !bytes.Equal(firstBytes, secondBytes) {
 				t.Fatal("archive bytes changed after source metadata drift")
 			}
-			if mode := mustStat(t, first).Mode().Perm(); mode != 0o644 {
+			if mode := mustStat(t, first).Mode().Perm(); runtime.GOOS != "windows" && mode != 0o644 {
 				t.Fatalf("output mode = %o, want 644", mode)
 			}
 			if names := archiveNames(t, first, format); !reflect.DeepEqual(names, []string{"varkiv-test/", "varkiv-test/licenses/", "varkiv-test/licenses/NOTICE", "varkiv-test/varkiv"}) {
@@ -157,11 +157,16 @@ func archiveNames(t *testing.T, archivePath string, format Format) []string {
 
 func assertArchiveMetadata(t *testing.T, archivePath string, format Format) {
 	t.Helper()
+	executableMode := os.FileMode(0o755)
+	if runtime.GOOS == "windows" {
+		// Windows does not preserve a POSIX executable bit in source metadata.
+		executableMode = 0o644
+	}
 	wantModes := map[string]os.FileMode{
 		"varkiv-test/":                0o755,
 		"varkiv-test/licenses/":       0o755,
 		"varkiv-test/licenses/NOTICE": 0o644,
-		"varkiv-test/varkiv":          0o755,
+		"varkiv-test/varkiv":          executableMode,
 	}
 	switch format {
 	case FormatZip:

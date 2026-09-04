@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"varkiv/internal/catalog"
@@ -76,7 +77,7 @@ func TestManagedCleanupQuarantinesOnlyOrphansAndRestores(t *testing.T) {
 	if _, err = os.Stat(filepath.Join(repository.MediaRoot, "cache", "thumbnails-v1", "aa", "thumb.png")); err != nil {
 		t.Fatal("rebuildable media cache was touched", err)
 	}
-	if info, err := os.Stat(filepath.Join(state, "recovery", "managed-storage", run.ID, cleanupManifestName)); err != nil || info.Mode().Perm() != 0o600 {
+	if info, err := os.Stat(filepath.Join(state, "recovery", "managed-storage", run.ID, cleanupManifestName)); err != nil || (runtime.GOOS != "windows" && info.Mode().Perm() != 0o600) {
 		t.Fatalf("private recovery manifest mode=%v err=%v", info, err)
 	}
 

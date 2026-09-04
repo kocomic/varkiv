@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -65,6 +66,23 @@ func Open(path string) (*Store, error) {
 	return s, nil
 }
 
+func readOnlySQLiteURI(absolute string, immutable bool) string {
+	uriPath := filepath.ToSlash(absolute)
+	// url.URL needs a leading slash to serialize an absolute Windows drive
+	// path as file:///C:/..., which modernc SQLite accepts on Windows.
+	if runtime.GOOS == "windows" && !strings.HasPrefix(uriPath, "/") {
+		uriPath = "/" + uriPath
+	}
+	uri := &url.URL{Scheme: "file", Path: uriPath}
+	query := uri.Query()
+	query.Set("mode", "ro")
+	if immutable {
+		query.Set("immutable", "1")
+	}
+	uri.RawQuery = query.Encode()
+	return uri.String()
+}
+
 // OpenReadOnly opens an existing exact SQLite file without changing journal
 // mode, running migrations, or creating sidecars. It is intended for offline
 // checks, including databases mounted from a read-only restored volume.
@@ -77,20 +95,17 @@ func OpenReadOnly(path string) (*Store, error) {
 	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
 		return nil, errors.New("database must be an exact regular file")
 	}
-	uri := &url.URL{Scheme: "file", Path: filepath.ToSlash(absolute)}
-	query := uri.Query()
-	query.Set("mode", "ro")
 	// An offline database without WAL sidecars can be treated as immutable,
 	// which prevents SQLite from creating empty WAL/SHM files even when the
 	// database header remembers WAL mode. If a live WAL exists, omit immutable
 	// so the check observes its committed pages.
+	immutable := false
 	if _, walErr := os.Lstat(absolute + "-wal"); errors.Is(walErr, os.ErrNotExist) {
 		if _, shmErr := os.Lstat(absolute + "-shm"); errors.Is(shmErr, os.ErrNotExist) {
-			query.Set("immutable", "1")
+			immutable = true
 		}
 	}
-	uri.RawQuery = query.Encode()
-	db, err := sql.Open("sqlite", uri.String())
+	db, err := sql.Open("sqlite", readOnlySQLiteURI(absolute, immutable))
 	if err != nil {
 		return nil, err
 	}
