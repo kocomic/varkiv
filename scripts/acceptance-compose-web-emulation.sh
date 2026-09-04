@@ -126,6 +126,9 @@ report_and_cleanup() {
   cleanup_resources
   if ((status != 0)); then
     printf 'compose_web_emulation_acceptance=failed stage=%s\n' "$stage" >&2
+    if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+      printf '::error title=Web emulator Compose acceptance::Failed at stage %s\n' "$stage" >&2
+    fi
   fi
   return "$status"
 }
@@ -147,6 +150,8 @@ if docker ps -a --filter "label=com.docker.compose.project=$project" --format '{
 fi
 
 stage=compose-contract
+test "$(grep -Fc 'create_host_path: false' compose.yaml)" -eq 1
+test "$(grep -Fc 'create_host_path: false' compose.web-emulator.yaml)" -eq 1
 "${compose_command[@]}" config --format json > "$config_json"
 COMPOSE_CONFIG_JSON="$config_json" EXPECTED_ASSET_ROOT="$asset_root" EXPECTED_DATA_VOLUME="$data_volume" python3 - <<'PY'
 import json
@@ -163,9 +168,9 @@ assets = mounts["/opt/emulatorjs"]
 assert assets["type"] == "bind", assets
 assert Path(assets["source"]).resolve() == Path(os.environ["EXPECTED_ASSET_ROOT"]).resolve(), assets
 assert assets["read_only"] is True, assets
-assert assets["bind"]["create_host_path"] is False, assets
+assert assets.get("bind", {}).get("create_host_path", False) is False, assets
 assert mounts["/library"]["read_only"] is True, mounts["/library"]
-assert mounts["/library"]["bind"]["create_host_path"] is False, mounts["/library"]
+assert mounts["/library"].get("bind", {}).get("create_host_path", False) is False, mounts["/library"]
 assert payload["volumes"]["data"]["name"] == os.environ["EXPECTED_DATA_VOLUME"], payload["volumes"]
 PY
 

@@ -47,6 +47,7 @@ grep -Fq "image: \"$tag_image\"" "$fixture_root/tag.yaml"
 stage=digest-render
 "$renderer" --image "$digest_image" --out "$fixture_root/digest.yaml" >/dev/null
 grep -Fq "image: \"$digest_image\"" "$fixture_root/digest.yaml"
+test "$(grep -Fc 'create_host_path: false' "$fixture_root/digest.yaml")" -eq 2
 
 stage=compose-config
 mkdir "$fixture_root/data" "$fixture_root/roms"
@@ -71,8 +72,11 @@ assert app["cap_drop"] == ["ALL"], app["cap_drop"]
 mounts = {item["target"]: item for item in app["volumes"]}
 assert mounts["/data"]["type"] == "bind" and not mounts["/data"].get("read_only", False), mounts["/data"]
 assert mounts["/library"]["type"] == "bind" and mounts["/library"]["read_only"] is True, mounts["/library"]
-assert mounts["/data"]["bind"]["create_host_path"] is False, mounts["/data"]
-assert mounts["/library"]["bind"]["create_host_path"] is False, mounts["/library"]
+# Compose v2.33 omits an explicit false value from JSON while newer releases
+# preserve it. The rendered YAML assertion above is the source-of-truth safety
+# check; here we reject only a contradictory true value.
+assert mounts["/data"].get("bind", {}).get("create_host_path", False) is False, mounts["/data"]
+assert mounts["/library"].get("bind", {}).get("create_host_path", False) is False, mounts["/library"]
 PY
 
 stage=negative-cases
