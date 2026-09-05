@@ -43,6 +43,10 @@ cd clients/android
 
 ## 变更要求
 
+依赖升级应同步更新 `docs/third-party-inventory.lock.tsv` 与 `docs/THIRD_PARTY_NOTICES.md`，复核实际依赖许可证并运行 `./scripts/check-third-party-notices.sh --all`。Go 运行依赖和 Android 构建工具链分别由 Dependabot 分组更新；关联版本需要一起验证，不能只合并版本号。
+
+Android 使用 AGP 内置 Kotlin，通过根构建文件的 `kotlin-gradle-plugin` classpath 固定编译器版本，不再应用 `org.jetbrains.kotlin.android`。升级时核对 [AGP 兼容表](https://developer.android.com/build/releases/about-agp) 与 [内置 Kotlin 迁移规则](https://developer.android.com/build/migrate-to-built-in-kotlin)，保留 Java 17 目标，并验证单元测试、Lint、APK/AAB 与专用模拟器上的同步测试。
+
 - 一个 pull request 聚焦一个问题，按仓库模板说明用户可见行为、兼容性、来源和验证证据。
 - 新 API 必须使用 `/api/v1`、结构化错误、请求 ID，并在集合端点使用统一分页。
 - 每个 OpenAPI 操作必须保留由 HTTP 方法和版本内路径确定的唯一 `operationId`；路由、方法、合同与本地 `$ref` 解析由契约测试共同锁定。

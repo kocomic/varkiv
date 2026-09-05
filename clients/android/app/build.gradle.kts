@@ -1,8 +1,17 @@
-import org.gradle.api.tasks.Sync
+import javax.inject.Inject
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.tasks.CacheableTask
+import org.gradle.api.tasks.InputFiles
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.TaskAction
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
 }
 
 val releaseKeystorePath = providers.environmentVariable("ANDROID_KEYSTORE_PATH").orNull
@@ -17,11 +26,33 @@ val releaseSigningConfigured = listOf(
     releaseKeyPassword,
 ).all { !it.isNullOrBlank() }
 
-val thirdPartyAssetsDir = layout.buildDirectory.dir("generated/third-party-license-assets")
-val generateThirdPartyLicenseAssets by tasks.registering(Sync::class) {
-    from(rootProject.file("../../docs/THIRD_PARTY_NOTICES.md"))
-    from(rootProject.file("../../docs/licenses/Apache-2.0.txt"))
-    into(thirdPartyAssetsDir)
+@CacheableTask
+abstract class GenerateThirdPartyLicenseAssets : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val sourceFiles: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @get:Inject
+    abstract val fileSystem: FileSystemOperations
+
+    @TaskAction
+    fun generate() {
+        fileSystem.sync {
+            from(sourceFiles)
+            into(outputDirectory)
+        }
+    }
+}
+
+val generateThirdPartyLicenseAssets = tasks.register<GenerateThirdPartyLicenseAssets>("generateThirdPartyLicenseAssets") {
+    sourceFiles.from(
+        rootProject.file("../../docs/THIRD_PARTY_NOTICES.md"),
+        rootProject.file("../../docs/licenses/Apache-2.0.txt"),
+    )
+    outputDirectory.set(layout.buildDirectory.dir("generated/third-party-license-assets"))
 }
 
 android {
@@ -30,10 +61,6 @@ android {
 
     buildFeatures {
         buildConfig = true
-    }
-
-    sourceSets {
-        getByName("main").assets.srcDir(thirdPartyAssetsDir)
     }
 
     defaultConfig {
@@ -68,11 +95,12 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
 }
 
-tasks.named("preBuild").configure {
-    dependsOn(generateThirdPartyLicenseAssets)
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(generateThirdPartyLicenseAssets) { it.outputDirectory }
+    }
 }
 
 dependencies {

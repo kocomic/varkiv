@@ -7,11 +7,20 @@ updates:
     open-pull-requests-limit: 5
   - package-ecosystem: gomod
     directory: /
+    groups:
+      go-runtime:
+        patterns: ['*']
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
   - package-ecosystem: gradle
     directory: /clients/android
+    groups:
+      android-toolchain:
+        patterns:
+          - gradle-wrapper
+          - com.android.application
+          - org.jetbrains.kotlin*
     schedule:
       interval: weekly
     open-pull-requests-limit: 5

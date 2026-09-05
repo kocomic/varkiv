@@ -8,15 +8,14 @@
 |---|---:|---|
 | `github.com/dustin/go-humanize` | v1.0.1 | MIT |
 | `github.com/google/uuid` | v1.6.0 | BSD-3-Clause |
-| `github.com/mattn/go-isatty` | v0.0.20 | MIT |
+| `github.com/mattn/go-isatty` | v0.0.24 | MIT |
 | `github.com/ncruces/go-strftime` | v1.0.0 | MIT |
 | `github.com/remyoudompheng/bigfft` | v0.0.0-20230129092748-24d4a6f8daec | BSD-3-Clause |
-| `golang.org/x/exp` | v0.0.0-20251023183803-a4bb9ffd2546 | BSD-3-Clause |
-| `golang.org/x/sys` | v0.37.0 | BSD-3-Clause |
-| `modernc.org/libc` | v1.67.6 | BSD-3-Clause；另含上游第三方声明 |
+| `golang.org/x/sys` | v0.47.0 | BSD-3-Clause |
+| `modernc.org/libc` | v1.74.4 | BSD-3-Clause；另含上游第三方声明 |
 | `modernc.org/mathutil` | v1.7.1 | BSD-3-Clause；子组件另有声明 |
 | `modernc.org/memory` | v1.11.0 | BSD-3-Clause；mmap-go/Go 来源另有声明 |
-| `modernc.org/sqlite` | v1.45.0 | BSD-3-Clause；SQLite 生成来源需保留其适用声明 |
+| `modernc.org/sqlite` | v1.57.0 | BSD-3-Clause；另含 SQLite public-domain 声明与 sqlite-vec MIT 许可 |
 
 本表是 Linux amd64/arm64/armv7、Windows amd64/arm64 与 macOS arm64 无 CGO 发布目标的依赖并集；某个具体目标可以只链接其中的子集。模块版本和校验和由 `go.sum` 锁定。发布自动化不得从本表推断“只有一种许可证”；必须读取对应模块的 `LICENSE` 以及 `LICENSE-3RD-PARTY.md`、`LICENSE-*` 等附加文件。
 
@@ -24,10 +23,10 @@
 
 | Maven 坐标 | 版本 | 主许可证 |
 |---|---:|---|
-| `org.jetbrains.kotlin:kotlin-stdlib` | 2.0.21 | Apache-2.0 |
+| `org.jetbrains.kotlin:kotlin-stdlib` | 2.4.10 | Apache-2.0 |
 | `org.jetbrains:annotations` | 13.0 | Apache-2.0 |
 
-这两项来自当前 `releaseRuntimeClasspath`，并由 Gradle 生成的 release SDK dependency metadata 交叉核对。上游 Maven 元数据分别声明 [Kotlin standard library](https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.0.21/kotlin-stdlib-2.0.21.pom) 和 [JetBrains annotations](https://repo.maven.apache.org/maven2/org/jetbrains/annotations/13.0/annotations-13.0.pom) 使用 Apache-2.0。APK/AAB 内嵌本文件与经 SHA-256 固定的 Apache-2.0 标准全文；这不授予 Varkiv 自身 Apache-2.0 许可。
+这两项来自当前 `releaseRuntimeClasspath`，并由 Gradle 生成的 release SDK dependency metadata 交叉核对。上游 Maven 元数据分别声明 [Kotlin standard library](https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.4.10/kotlin-stdlib-2.4.10.pom) 和 [JetBrains annotations](https://repo.maven.apache.org/maven2/org/jetbrains/annotations/13.0/annotations-13.0.pom) 使用 Apache-2.0。APK/AAB 内嵌本文件与经 SHA-256 固定的 Apache-2.0 标准全文；第三方许可与 Varkiv 自身的 Apache-2.0 许可各自独立。
 
 ## Web E2E（开发/测试，不进入服务端运行镜像）
 
@@ -48,7 +47,7 @@ Varkiv 仓库与主应用镜像不包含 EmulatorJS 资源。实验资源下载�
 |---|---:|---|---|
 | `junit:junit` | 4.13.2 | JVM 单元测试 | EPL-1.0 |
 | `androidx.test:core` | 1.7.0 | Android instrumentation 应用上下文 | Apache-2.0 |
-| `androidx.test:runner` | 1.6.2 | AndroidJUnitRunner | Apache-2.0 |
+| `androidx.test:runner` | 1.7.0 | AndroidJUnitRunner | Apache-2.0 |
 | `androidx.test.ext:junit` | 1.3.0 | JUnit 4 Android runner 扩展 | Apache-2.0；传递使用 JUnit 4 |
 
 Android Gradle Plugin、Kotlin Gradle Plugin、Gradle Wrapper、Android SDK 与 JDK 是构建工具，不等于自动打进 APK 的运行库；Kotlin 标准库及其 annotations 传递项则属于上表列出的 release 运行内容。测试配置的传递依赖不进入 release APK/AAB；发布前仍需用最终 release 依赖报告和内嵌 notice 检查复核实际内容。
