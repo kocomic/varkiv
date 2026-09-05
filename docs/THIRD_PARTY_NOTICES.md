@@ -12,10 +12,10 @@
 | `github.com/ncruces/go-strftime` | v1.0.0 | MIT |
 | `github.com/remyoudompheng/bigfft` | v0.0.0-20230129092748-24d4a6f8daec | BSD-3-Clause |
 | `golang.org/x/sys` | v0.47.0 | BSD-3-Clause |
-| `modernc.org/libc` | v1.74.4 | BSD-3-Clause；另含上游第三方声明 |
+| `modernc.org/libc` | v1.75.6 | BSD-3-Clause；另含上游第三方声明 |
 | `modernc.org/mathutil` | v1.7.1 | BSD-3-Clause；子组件另有声明 |
-| `modernc.org/memory` | v1.11.0 | BSD-3-Clause；mmap-go/Go 来源另有声明 |
-| `modernc.org/sqlite` | v1.57.0 | BSD-3-Clause；另含 SQLite public-domain 声明与 sqlite-vec MIT 许可 |
+| `modernc.org/memory` | v1.12.1 | BSD-3-Clause；mmap-go/Go 来源另有声明 |
+| `modernc.org/sqlite` | v1.58.0 | BSD-3-Clause；另含 SQLite public-domain 声明与 sqlite-vec MIT 许可 |
 
 本表是 Linux amd64/arm64/armv7、Windows amd64/arm64 与 macOS arm64 无 CGO 发布目标的依赖并集；某个具体目标可以只链接其中的子集。模块版本和校验和由 `go.sum` 锁定。发布自动化不得从本表推断“只有一种许可证”；必须读取对应模块的 `LICENSE` 以及 `LICENSE-3RD-PARTY.md`、`LICENSE-*` 等附加文件。
 
