@@ -49,6 +49,12 @@ stage=digest-render
 grep -Fq "image: \"$digest_image\"" "$fixture_root/digest.yaml"
 test "$(grep -Fc 'create_host_path: false' "$fixture_root/digest.yaml")" -eq 2
 
+stage=dockerhub-render
+hub_image="${digest_image/ghcr.io/docker.io}"
+"$renderer" --image "$hub_image" --out "$fixture_root/dockerhub.yaml" >/dev/null
+grep -Fq "image: \"$hub_image\"" "$fixture_root/dockerhub.yaml"
+test "$(grep -Fc 'create_host_path: false' "$fixture_root/dockerhub.yaml")" -eq 2
+
 stage=compose-config
 mkdir "$fixture_root/data" "$fixture_root/roms"
 GAME_LIBRARY_TOKEN=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \
@@ -94,4 +100,4 @@ if "$renderer" --image $'ghcr.io/example/varkiv:edge\nservices: {}' --out "$fixt
 fi
 
 stage=complete
-printf '%s\n' 'container_compose_renderer_tests=passed positive_cases=3 negative_cases=3'
+printf '%s\n' 'container_compose_renderer_tests=passed positive_cases=4 negative_cases=3 registries=ghcr,dockerhub'

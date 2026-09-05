@@ -19,14 +19,30 @@
 
 ## 使用发布镜像
 
-镜像发布到 `ghcr.io/<owner>/<repository>`：
+官方镜像发布到 `ghcr.io/kocomic/varkiv` 和 [Docker Hub 的 `kocomic/varkiv`](https://hub.docker.com/r/kocomic/varkiv)：
 
 - `edge`：`main` 的最新成功 CI 提交，适合试用。
 - `sha-<12位提交>`：同一 edge 构建的提交专属标签，便于回滚定位；严格不可变身份仍以 digest 为准。
 - `<version>`：只有版本标签通过完整发布门禁后才生成。
 - `image@sha256:<digest>`：最严格的固定方式；每个 GitHub Release 都附带已经写入 digest 的 Compose。
 
-镜像清单同时包含 `linux/amd64` 和 `linux/arm64`，并附 SBOM、BuildKit provenance 和 GitHub artifact attestation。首次发布后，仓库维护者需要把 GHCR package 设置为公开；私有部署则先在 NAS 执行 `docker login ghcr.io`。
+镜像清单同时包含 `linux/amd64` 和 `linux/arm64`，并附 SBOM、BuildKit provenance 和 GitHub artifact attestation。Docker Hub 复制 GHCR 的完整镜像清单，不重新构建；两处的 manifest digest 一致。官方仓库均可匿名拉取。
+
+如需从 Docker Hub 部署，将镜像前缀替换成 `docker.io/kocomic/varkiv`，保留完整 digest。`compose.ghcr.yaml` 同时支持两个仓库；通过 `.env` 的 `VARKIV_IMAGE` 选择。Release 下载的 Compose 内嵌了 GHCR digest，不接受环境变量覆盖；此时编辑该 Compose 的 `image` 前缀，或使用下述生成器输出新文件：
+
+```bash
+./scripts/render-container-deployment.sh \
+  --image docker.io/kocomic/varkiv@sha256:<release-digest> \
+  --out compose.dockerhub.yaml
+```
+
+### 维护自动发布
+
+在仓库的 Actions Secrets 中设置 `DOCKERHUB_TOKEN`。令牌使用 Docker Hub Personal Access Token 的 Read & Write 权限，存入 GitHub 的加密 Secret，不进入源码、Compose 或 NAS。用户名默认使用 GitHub 仓库所有者；两处账号不同时，用 Actions **Variable** `DOCKERHUB_USERNAME` 覆盖。用户名属于公开镜像地址，不应存为 Secret，以免 GitHub 的脱敏规则阻止镜像地址传递给验证 job。参见 [Docker 的令牌文档](https://docs.docker.com/security/access-tokens/personal-access-tokens/)。
+
+`main` 的 CI 成功后，先构建 GHCR 的 `edge` 和 `sha-<commit>`，再调用 `Publish Docker Hub mirror` 复制并验证。版本发布会等待 GHCR 和 Docker Hub 各自的 amd64、arm64 匿名拉取及版本验证通过，才创建 GitHub Release。Docker Hub 凭据缺失、复制失败或 digest 不一致都会使管线失败；版本标签禁止覆盖不同内容，不发布含义不明的 `latest`。
+
+补发已经存在的 Release 或重试其镜像时，在 `Publish Docker Hub mirror` 的 **Run workflow** 中选择 `main`，填写不带 `v` 的已发布版本号。流程从 Release 附件读取原始 digest，校验来源、版本和提交，不重建或修改原 Release。成功运行附带固定到 Docker Hub digest 的 Compose、环境模板和校验和。尚未创建 Release 的失败发布，可对原 workflow 选择 **Re-run failed jobs**；不要重跑已经成功的不可变镜像构建 job。
 
 复制模板：
 

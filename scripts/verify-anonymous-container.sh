@@ -6,7 +6,8 @@ usage() {
   cat <<'EOF'
 Usage: scripts/verify-anonymous-container.sh --image IMAGE@sha256:DIGEST --version VERSION [--platform PLATFORM]
 
-Logs out of GHCR, then proves that the immutable image can be pulled and run
+Uses an isolated credential-free Docker configuration to prove that an image
+from GHCR or Docker Hub can be pulled and run
 without credentials on both linux/amd64 and linux/arm64. Registry propagation
 failures are retried for about ten minutes by default; output mismatches fail
 immediately. VARKIV_ANONYMOUS_PULL_ATTEMPTS and
@@ -47,8 +48,8 @@ while (($#)); do
   esac
 done
 
-[[ "$image_ref" =~ ^ghcr\.io/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$ ]] || {
-  echo "error: --image must be an immutable lowercase GHCR digest reference" >&2
+[[ "$image_ref" =~ ^(ghcr\.io|docker\.io)/[a-z0-9._-]+/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$ ]] || {
+  echo "error: --image must be an immutable lowercase GHCR or Docker Hub digest reference" >&2
   exit 2
 }
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || {
@@ -73,12 +74,20 @@ fi
 command -v docker >/dev/null 2>&1 || { echo "error: docker is unavailable" >&2; exit 2; }
 
 diagnostic_log="$(mktemp "${TMPDIR:-/tmp}/varkiv-anonymous-pull.XXXXXX")"
+anonymous_config="$(mktemp -d "${TMPDIR:-/tmp}/varkiv-anonymous-config.XXXXXX")"
 cleanup() {
   rm -f -- "$diagnostic_log"
+  rmdir -- "$anonymous_config"
 }
 trap cleanup EXIT INT TERM
 
-docker logout ghcr.io >/dev/null 2>&1 || true
+# Preserve the selected daemon while isolating registry credentials. This also
+# works with Docker Desktop's Unix socket without logging out the developer.
+docker_endpoint="${DOCKER_HOST:-}"
+if [[ -z "$docker_endpoint" ]]; then
+  docker_endpoint="$(docker context inspect --format '{{.Endpoints.docker.Host}}')"
+fi
+[[ -n "$docker_endpoint" ]] || { echo 'error: Docker endpoint is unavailable' >&2; exit 2; }
 expected="Varkiv $version"
 platforms=(linux/amd64 linux/arm64)
 if [[ -n "$requested_platform" ]]; then
@@ -90,7 +99,8 @@ for platform in "${platforms[@]}"; do
     : >"$diagnostic_log"
     output=""
     status=0
-    output="$(docker run --rm --pull always --platform "$platform" "$image_ref" version 2>"$diagnostic_log")" || status=$?
+    output="$(DOCKER_CONFIG="$anonymous_config" DOCKER_CONTEXT='' DOCKER_HOST="$docker_endpoint" \
+      docker run --rm --pull always --platform "$platform" "$image_ref" version 2>"$diagnostic_log")" || status=$?
     if ((status == 0)); then
       if [[ "$output" != "$expected" ]]; then
         printf 'error: anonymous %s image output mismatch: expected %q, received %q\n' "$platform" "$expected" "$output" >&2

@@ -125,6 +125,9 @@ jobs:
           ./scripts/test-github-actions-pinning.sh
           ./scripts/test-release-workflow.sh
           ./scripts/test-container-workflow.sh
+          ./scripts/test-verify-anonymous-container.sh
+          node --test scripts/test-mirror-container.mjs
+          ruby scripts/test-dockerhub-workflow.rb
           ./scripts/check-version.sh
           ./scripts/check-docs.py
           ./scripts/test-render-container-deployment.sh
@@ -385,6 +388,7 @@ jobs:
     needs:
       - release
       - prove
+      - dockerhub
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -443,3 +447,15 @@ jobs:
             --title "Varkiv ${{ needs.release.outputs.version }}" \
             --generate-notes \
             --latest
+
+  dockerhub:
+    name: Publish verified Docker Hub release mirror
+    needs: [release, prove]
+    uses: ./.github/workflows/dockerhub.yml
+    with:
+      source_image: ${{ needs.release.outputs.image_ref }}
+      version: ${{ needs.release.outputs.version }}
+      revision: ${{ github.sha }}
+      tags: ${{ needs.release.outputs.version }}
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

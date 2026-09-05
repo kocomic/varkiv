@@ -20,6 +20,11 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
+    outputs:
+      image_ref: ${{ steps.image.outputs.name }}@${{ steps.push.outputs.digest }}
+      version: ${{ steps.image.outputs.version }}
+      revision: ${{ steps.image.outputs.revision }}
+      mirror_tags: ${{ steps.image.outputs.mirror_tags }}
     permissions:
       contents: read
       packages: write
@@ -46,6 +51,7 @@ jobs:
             echo "name=$image"
             echo "version=$version"
             echo "revision=$source_sha"
+            echo "mirror_tags=sha-$short_sha edge"
             echo 'tags<<EOF'
             echo "$image:edge"
             echo "$image:sha-$short_sha"
@@ -114,3 +120,15 @@ jobs:
           path: deployment
           if-no-files-found: error
           retention-days: 30
+
+  dockerhub:
+    name: Publish Docker Hub edge mirror
+    needs: publish
+    uses: ./.github/workflows/dockerhub.yml
+    with:
+      source_image: ${{ needs.publish.outputs.image_ref }}
+      version: ${{ needs.publish.outputs.version }}
+      revision: ${{ needs.publish.outputs.revision }}
+      tags: ${{ needs.publish.outputs.mirror_tags }}
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

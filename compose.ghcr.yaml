@@ -2,7 +2,7 @@ name: varkiv
 
 services:
   app:
-    image: "${VARKIV_IMAGE:?Set VARKIV_IMAGE to a published GHCR tag or digest}"
+    image: "${VARKIV_IMAGE:?Set VARKIV_IMAGE to a published GHCR or Docker Hub tag or digest}"
     restart: unless-stopped
     init: true
     read_only: true

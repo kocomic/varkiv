@@ -27,7 +27,7 @@ With Go 1.26.6 installed, run the local UI demo from the repository root:
 
 Open <http://127.0.0.1:8080>. The demo uses fictional, non-playable ROM bytes. Runtime data is written to the ignored `.demo/` directory, and the local build writes its binary to the ignored `bin/varkiv` path. Stop it with `Ctrl+C`.
 
-For a persistent library, follow the copy-and-verify [Quickstart](docs/QUICKSTART.md). Tagged releases publish `linux/amd64` and `linux/arm64` images at `ghcr.io/kocomic/varkiv`, together with a digest-pinned Compose file, environment template, checksums, SBOM, and build provenance; source builds remain available for development.
+For a persistent library, follow the copy-and-verify [Quickstart](docs/QUICKSTART.md). Images for `linux/amd64` and `linux/arm64` are available from `ghcr.io/kocomic/varkiv` and [Docker Hub](https://hub.docker.com/r/kocomic/varkiv). Both registries serve the same manifest digest. Releases include a digest-pinned Compose file, environment template, checksums, SBOM, and build provenance; source builds remain available for development.
 
 ## Product boundaries
 

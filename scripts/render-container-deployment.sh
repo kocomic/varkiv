@@ -9,7 +9,7 @@ image=""
 output=""
 
 usage() {
-  printf '%s\n' 'usage: scripts/render-container-deployment.sh --image GHCR_TAG_OR_DIGEST --out NEW_COMPOSE_FILE'
+  printf '%s\n' 'usage: scripts/render-container-deployment.sh --image REGISTRY_TAG_OR_DIGEST --out NEW_COMPOSE_FILE'
 }
 
 while (($# > 0)); do
@@ -35,8 +35,8 @@ while (($# > 0)); do
   esac
 done
 
-[[ "$image" =~ ^ghcr\.io/[a-z0-9._-]+/[a-z0-9._/-]+(:[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}|@sha256:[0-9a-f]{64})$ ]] || {
-  printf '%s\n' 'image must be a lowercase GHCR tag or sha256 digest reference' >&2
+[[ "$image" =~ ^(ghcr\.io|docker\.io)/[a-z0-9._-]+/[a-z0-9._/-]+(:[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}|@sha256:[0-9a-f]{64})$ ]] || {
+  printf '%s\n' 'image must be a lowercase GHCR or Docker Hub tag or sha256 digest reference' >&2
   exit 2
 }
 [[ -n "$output" ]] || { usage >&2; exit 2; }

@@ -1,6 +1,6 @@
 # Quickstart
 
-This guide starts Varkiv either from the released `ghcr.io/kocomic/varkiv` image or from a source checkout. Release deployment files pin the image by manifest digest rather than relying on a mutable tag.
+This guide starts Varkiv from the released `ghcr.io/kocomic/varkiv` or `docker.io/kocomic/varkiv` image, or from a source checkout. Both registries serve the same manifest digest. Release deployment files pin that digest rather than relying on a mutable tag.
 
 Varkiv never needs write access to the external ROM directory. Use ROMs and BIOS files only when you have the right to do so, and keep an independent backup of them.
 
@@ -45,7 +45,7 @@ Open <http://127.0.0.1:18080>.
 
 ## Option B: persistent library from a released image
 
-Each tagged GitHub Release contains a Compose file with an immutable GHCR manifest digest, an environment template, the exact image reference, and `SHA256SUMS`. The release workflow rejects the release unless anonymous pulls of both `linux/amd64` and `linux/arm64` run the expected Varkiv version.
+Each tagged GitHub Release contains a Compose file with an immutable GHCR manifest digest, an environment template, the exact image reference, and `SHA256SUMS`. The release workflow verifies anonymous pulls and the executable version on both `linux/amd64` and `linux/arm64`; new releases also require the Docker Hub mirror proofs to pass.
 
 Choose a version from [Varkiv Releases](https://github.com/kocomic/varkiv/releases), omit the leading `v`, and download its deployment files:
 
@@ -59,6 +59,8 @@ curl --fail --location --remote-name "$base_url/SHA256SUMS"
 sha256sum --ignore-missing --check SHA256SUMS
 cp "varkiv-${version}-env.example" .env
 ```
+
+To use [Docker Hub](https://hub.docker.com/r/kocomic/varkiv), first verify the downloaded checksums, then change only `ghcr.io/kocomic/varkiv` to `docker.io/kocomic/varkiv` in the downloaded Compose file's `image` value. Keep the full `@sha256:...` suffix. This file embeds its image reference, so changing `VARKIV_IMAGE` in `.env` alone will not override it. Existing GHCR deployments need no change.
 
 Open `.env` in a private local editor. Set `ROM_LIBRARY_PATH` to an existing absolute ROM directory, `VARKIV_DATA_PATH` to an existing private directory on a local ext4/btrfs/ZFS volume, and `GAME_LIBRARY_TOKEN` to the output of `openssl rand -hex 32`. Do not place SQLite state on SMB, NFS, WebDAV, SSHFS, or another network filesystem. Keep the ROM mount read-only.
 

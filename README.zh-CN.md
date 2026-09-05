@@ -27,7 +27,7 @@
 
 打开 <http://127.0.0.1:8080>。演示只使用虚构、不可运行的 ROM 字节。运行数据写入已忽略的 `.demo/` 目录，本地构建的二进制写入已忽略的 `bin/varkiv` 路径。按 `Ctrl+C` 停止。
 
-如需建立持久资料库，请按照可复制、可验证的 [Quickstart](docs/QUICKSTART.md) 操作。版本发布会在 `ghcr.io/kocomic/varkiv` 提供 `linux/amd64` 与 `linux/arm64` 镜像，并附带固定到 digest 的 Compose、环境模板、校验和、SBOM 与构建来源证明；开发时仍可选择从源码构建。
+如需建立持久资料库，请按照可复制、可验证的 [Quickstart](docs/QUICKSTART.md) 操作。`ghcr.io/kocomic/varkiv` 和 [Docker Hub](https://hub.docker.com/r/kocomic/varkiv) 提供 `linux/amd64` 与 `linux/arm64` 镜像，两处镜像的 manifest digest 一致。Release 附带固定到 digest 的 Compose、环境模板、校验和、SBOM 与构建来源证明；开发时仍可选择从源码构建。
 
 ## 产品边界
 

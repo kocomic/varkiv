@@ -27,7 +27,7 @@
 
 開啟 <http://127.0.0.1:8080>。示範只使用虛構、無法執行的 ROM 位元組。執行資料寫入已忽略的 `.demo/` 目錄，本機建置的二進位檔寫入已忽略的 `bin/varkiv` 路徑。按 `Ctrl+C` 停止。
 
-若要建立持久遊戲庫，請依照可複製、可驗證的 [Quickstart](docs/QUICKSTART.md) 操作。版本發布會在 `ghcr.io/kocomic/varkiv` 提供 `linux/amd64` 與 `linux/arm64` 映像，並附上固定至 digest 的 Compose、環境範本、校驗和、SBOM 與建置來源證明；開發時仍可選擇從原始碼建置。
+若要建立持久遊戲庫，請依照可複製、可驗證的 [Quickstart](docs/QUICKSTART.md) 操作。`ghcr.io/kocomic/varkiv` 和 [Docker Hub](https://hub.docker.com/r/kocomic/varkiv) 提供 `linux/amd64` 與 `linux/arm64` 映像，兩處映像的 manifest digest 一致。Release 附上固定至 digest 的 Compose、環境範本、校驗和、SBOM 與建置來源證明；開發時仍可選擇從原始碼建置。
 
 ## 產品邊界
 

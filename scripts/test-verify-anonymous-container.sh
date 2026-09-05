@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+export DOCKER_HOST=unix:///test/docker.sock
 
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 test_root="$(mktemp -d "${TMPDIR:-/tmp}/varkiv-anonymous-container-test.XXXXXX")"
@@ -16,10 +17,14 @@ trap cleanup EXIT INT TERM
 fake_bin="$test_root/bin"
 mkdir -m 700 "$fake_bin"
 fake_docker="$fake_bin/docker"
+# Generate a separate program; its variables must remain literal here.
+# shellcheck disable=SC2016
 printf '%s\n' '#!/usr/bin/env bash' \
   'set -euo pipefail' \
-  'if [[ "$1" == logout ]]; then exit 0; fi' \
+  'if [[ "$1" == context ]]; then echo unix:///test/docker.sock; exit 0; fi' \
   '[[ "$1" == run ]] || exit 90' \
+  '[[ -n "${DOCKER_CONFIG:-}" && ! -e "$DOCKER_CONFIG/config.json" ]] || exit 91' \
+  '[[ "${DOCKER_HOST:-}" == unix:///test/docker.sock ]] || exit 92' \
   'platform=""' \
   'while (($#)); do' \
   '  if [[ "$1" == --platform ]]; then platform="$2"; shift 2; continue; fi' \
@@ -36,6 +41,7 @@ printf '%s\n' '#!/usr/bin/env bash' \
 chmod 700 "$fake_docker"
 
 fake_sleep="$fake_bin/sleep"
+# shellcheck disable=SC2016
 printf '%s\n' '#!/usr/bin/env bash' \
   'set -euo pipefail' \
   'printf "%s\n" "$1" >>"$FAKE_SLEEP_LOG"' >"$fake_sleep"
@@ -43,17 +49,16 @@ chmod 700 "$fake_sleep"
 
 image_ref="ghcr.io/kocomic/varkiv@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 run_verifier() {
-  verifier_platform=()
+  verifier_command=("$repository_root/scripts/verify-anonymous-container.sh" --image "$image_ref" --version 0.1.0-preview.5)
   if [[ -n "${2:-}" ]]; then
-    verifier_platform=(--platform "$2")
+    verifier_command+=(--platform "$2")
   fi
   PATH="$fake_bin:$PATH" \
     FAKE_STATE="$test_root/state" \
     FAKE_FAILURES="$1" \
     VARKIV_ANONYMOUS_PULL_ATTEMPTS=3 \
     VARKIV_ANONYMOUS_PULL_DELAY_SECONDS=0 \
-    "$repository_root/scripts/verify-anonymous-container.sh" \
-      --image "$image_ref" --version 0.1.0-preview.5 "${verifier_platform[@]}"
+    "${verifier_command[@]}"
 }
 
 mkdir -m 700 "$test_root/state"
@@ -141,3 +146,7 @@ set -e
 }
 
 printf '%s\n' 'anonymous_container_tests=passed default_window=20x30s propagation_retry=passed platform_isolation=passed permanent_failure=passed output_identity=passed invalid_config=passed'
+
+image_ref="${image_ref/ghcr.io/docker.io}"
+run_verifier 0 linux/arm64 >/dev/null 2>&1
+printf '%s\n' 'anonymous_dockerhub=passed caller_credentials_preserved=true'

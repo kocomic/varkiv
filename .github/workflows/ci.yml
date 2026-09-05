@@ -43,6 +43,8 @@ jobs:
           ./scripts/test-container-workflow.sh
           ./scripts/test-install-android-sdk.sh
           ./scripts/test-verify-anonymous-container.sh
+          node --test scripts/test-mirror-container.mjs
+          ruby scripts/test-dockerhub-workflow.rb
 
       - name: Verify release version identity
         if: runner.os == 'Linux'

@@ -27,7 +27,7 @@ Go 1.26.6 をインストールし、リポジトリのルートでローカル 
 
 <http://127.0.0.1:8080> を開いてください。デモは架空の実行不能な ROM バイトだけを使います。実行データは Git 管理外の `.demo/` フォルダーに書き込み、ローカルビルドのバイナリは Git 管理外の `bin/varkiv` に生成します。停止するには `Ctrl+C` を押します。
 
-永続ライブラリを構築する場合は、コピーして検証できる [Quickstart](docs/QUICKSTART.md) に従ってください。タグ付きリリースは `ghcr.io/kocomic/varkiv` に `linux/amd64` と `linux/arm64` のイメージを公開し、digest 固定の Compose、環境テンプレート、チェックサム、SBOM、ビルド provenance を添付します。開発用途ではソースビルドも利用できます。
+永続ライブラリを構築する場合は、コピーして検証できる [Quickstart](docs/QUICKSTART.md) に従ってください。`ghcr.io/kocomic/varkiv` と [Docker Hub](https://hub.docker.com/r/kocomic/varkiv) から `linux/amd64` と `linux/arm64` のイメージを取得できます。両レジストリの manifest digest は同一です。Release には digest 固定の Compose、環境テンプレート、チェックサム、SBOM、ビルド provenance が付属します。開発用途ではソースビルドも利用できます。
 
 ## 製品の境界
 

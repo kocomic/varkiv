@@ -71,6 +71,10 @@ if ! grep -A3 '^    needs:' <<<"$publish_section" | grep -Fq -- '- prove'; then
   printf '%s\n' 'both anonymous architecture proofs must gate GitHub Release publication' >&2
   exit 1
 fi
+if ! grep -A4 '^    needs:' <<<"$publish_section" | grep -Fq -- '- dockerhub'; then
+  echo 'Docker Hub anonymous proofs must gate GitHub Release publication' >&2
+  exit 1
+fi
 
 if grep -Eq 'run: sdkmanager([[:space:]]|$)' "$workflow"; then
   printf '%s\n' 'release workflow must use the bounded Android SDK installer' >&2
